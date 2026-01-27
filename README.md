@@ -1,6 +1,6 @@
 # G-Code Generator for painting machine 
 
-This Python script converts raster images into optimized G-code instructions for 3-axis CNC machines or robotic arms equipped with a paint brush. It features automated brush dipping, path optimization, and angled infill while maintaining the correct orientation of the source image.
+This Python script converts raster images into optimized G-code instructions for 3-axis CNC machines or robotic arms equipped with a paint brush. It features automated brush dipping, path optimization, and angled lines infill, concentric infill... 
 
 ## Features
 
