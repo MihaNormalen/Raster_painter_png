@@ -32,12 +32,11 @@ class SafeRasterPainter:
         
         # --- 1. IDEALEN DIAGONALNI VHOD V PETRIJEVKO ---
         self._set_machine_speed('travel')
-        # Izračun jitterja za center pomakanja
         j_x = random.uniform(-c['dip_jitter'], c['dip_jitter'])
         j_y = random.uniform(-c['dip_jitter'], c['dip_jitter'])
         active_x, active_y = c['dip_x'] + j_x, c['dip_y'] + j_y
         
-        # Ta ukaz izvede diagonalni lift (X, Y, Z hkrati) naravnost v center
+        # Diagonalni lift (X, Y, Z hkrati) na varno višino z_high nad petrijevko
         self.gcode.append(f"G0 X{active_x:.3f} Y{active_y:.3f} Z{c['z_high']}")
 
         # --- 2. SPIRALA (POČASNO) ---
@@ -54,13 +53,14 @@ class SafeRasterPainter:
 
         # --- 3. IDEALEN DIAGONALNI IZHOD NA CILJNO TOČKO ---
         self._set_machine_speed('travel')
-        # Rahli lift pred brisanjem ob rob
-        self.gcode.append(f"G0 Z{c['dip_z'] + 2.0}") 
-        angle = math.atan2(target_y - c['dip_y'], target_x - c['dip_x'])
-        # Brisanje ob rob
-        self.gcode.append(f"G0 X{c['dip_x'] + c['wipe_r'] * math.cos(angle):.3f} Y{c['dip_y'] + c['wipe_r'] * math.sin(angle):.3f}")
+        # Najprej navpično gor na varno višino z_high
+        self.gcode.append(f"G0 Z{c['z_high']}")
         
-        # Diagonalni spust naravnost na ciljno točko in varno višino z_low
+        angle = math.atan2(target_y - c['dip_y'], target_x - c['dip_x'])
+        # Brisanje ob rob - premik na wipe pozicijo, še vedno na z_high
+        self.gcode.append(f"G0 X{c['dip_x'] + c['wipe_r'] * math.cos(angle):.3f} Y{c['dip_y'] + c['wipe_r'] * math.sin(angle):.3f} Z{c['z_high']}")
+        
+        # Šele zdaj diagonalni spust naravnost na ciljno točko in varno višino z_low
         self.gcode.append(f"G0 X{target_x:.3f} Y{target_y:.3f} Z{c['z_low']}")
         
         self.dist_since_dip = 0
@@ -94,10 +94,15 @@ class SafeRasterPainter:
     def generate(self, img_path):
         c = self.cfg
         img = Image.open(img_path).convert('L')
-        if c.get('mirror_y', True): img = img.transpose(Image.FLIP_TOP_BOTTOM)
+        if c.get('mirror_x', False): img = img.transpose(Image.FLIP_LEFT_RIGHT)
+        if c.get('mirror_y', True):  img = img.transpose(Image.FLIP_TOP_BOTTOM)
+        img = img.point(lambda p: 0 if p < 140 else 255)
+        
         res = 2.0 
         target_w_mm = c['target_width']
-        img = img.resize((int(target_w_mm * res), int(target_w_mm * (img.height/img.width) * res)), Image.Resampling.LANCZOS)
+        target_h_mm = target_w_mm * (img.height / img.width)
+        img = img.resize((int(target_w_mm * res), int(target_h_mm * res)), Image.Resampling.NEAREST)
+        img_w, img_h = img.size
 
         if c['infill_type'] == 'concentric':
             binary = (np.array(img) < 140).astype(float)
@@ -106,7 +111,6 @@ class SafeRasterPainter:
             paths = []
             for d in np.arange(step_px / 2, np.max(dist_map), step_px):
                 for contour in measure.find_contours(dist_map, d):
-                    # Prilagodba koordinat za koncentrično polnilo
                     paths.append(np.array([[pt[0]/res + c['y_off'], pt[1]/res + c['x_off']] for pt in contour]))
         else:
             paths = self._generate_linear_segments(img, res)
@@ -114,11 +118,12 @@ class SafeRasterPainter:
         self.gcode = ["G90", "G21"]
         if not paths: return "M2"
 
-        # Začetni dip na prvo točko prve poti
+        # --- DETAJL: VAREN ZAČETEK IZ HOME POLOŽAJA ---
+        self._set_machine_speed('travel')
+        self.gcode.append(f"G0 Z{c['z_high']}") # Najprej navpično gor na 16mm
         self._perform_dip_and_travel(paths[0][0][1], paths[0][0][0])
 
         for path in paths:
-            # Premik na začetek nove poti (če nismo že tam)
             if math.hypot(self.current_pos[0] - path[0][1], self.current_pos[1] - path[0][0]) > 0.5:
                 self._set_machine_speed('travel')
                 self.gcode.append(f"G0 X{path[0][1]:.3f} Y{path[0][0]:.3f} Z{c['z_low']}")
@@ -149,10 +154,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     config = {
-        'infill_type':  'concentric', # 'lines' ali 'concentric'
+        'infill_type':  'concentric', 
         'infill_angle': 0.0,
         'target_width': 280.0,
-        'brush_w':      1.4,
+        'brush_w':      9.4, # Popravljeno iz 7.4 na 1.4 za realno risanje
         'overlap':      0.3,
         'min_dist':     120.0,
         'max_dist':     250.0,
