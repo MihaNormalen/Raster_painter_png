@@ -1,143 +1,145 @@
 import math
 import argparse
-from PIL import Image
+import random
+import numpy as np
+from PIL import Image, ImageFilter
+from scipy.ndimage import distance_transform_edt
+from skimage import measure
 
 class SafeRasterPainter:
     def __init__(self, cfg):
         self.cfg = cfg
         self.gcode = []
         self.dist_since_dip = 0
+        self.dip_count = 0 
         self.current_pos = (cfg['x_off'], cfg['y_off']) 
+        self.current_max_dist = random.uniform(cfg.get('min_dist', 120.0), cfg.get('max_dist', 250.0))
 
     def _update_pos(self, x, y):
         self.current_pos = (x, y)
 
-    def _perform_dip_and_travel(self, target_x, target_y):
-        """ Vaša originalna logika namakanja (2.25 kroga spirale) """
+    def _set_machine_speed(self, speed_type='travel'):
         c = self.cfg
-        cur_x, cur_y = self.current_pos
-        dip_x, dip_y = c['dip_x'], c['dip_y']
-        
-        self.gcode.append(f"; --- SMART DIP SEQUENCE ---")
-        dx, dy = dip_x - cur_x, dip_y - cur_y
-        dist = math.hypot(dx, dy)
-        safe_r = c['wipe_r'] + 5.0
-        
-        if dist > safe_r:
-            ratio = (dist - safe_r) / dist
-            self.gcode.append(f"G0 X{cur_x + dx * ratio:.3f} Y{cur_y + dy * ratio:.3f} Z{c['z_high']} F{c['feed']}")
-            self.gcode.append(f"G0 X{dip_x} Y{dip_y}")
-        else:
-            self.gcode.append(f"G0 Z{c['z_high']} F{c['feed']}")
-            self.gcode.append(f"G0 X{dip_x} Y{dip_y}")
+        f = c['feed'] if speed_type == 'travel' else c['feed_paint']
+        accel = c.get('accel_travel', 200) if speed_type == 'travel' else c.get('accel_paint', 20)
+        self.gcode.append("M400") 
+        self.gcode.append(f"M204 P{accel} T{accel}") 
+        self.gcode.append(f"M203 X{f} Y{f} Z{f}") 
+        self.gcode.append(f"G0 F{f}") 
 
-        self.gcode.append(f"G1 Z{c['dip_z']} F2000")
-        d_theta, max_theta, theta = 0.1, 4.5 * math.pi, 0
+    def _perform_dip_and_travel(self, target_x, target_y):
+        c = self.cfg
+        
+        # --- 1. IDEALEN DIAGONALNI VHOD V PETRIJEVKO ---
+        self._set_machine_speed('travel')
+        # Izračun jitterja za center pomakanja
+        j_x = random.uniform(-c['dip_jitter'], c['dip_jitter'])
+        j_y = random.uniform(-c['dip_jitter'], c['dip_jitter'])
+        active_x, active_y = c['dip_x'] + j_x, c['dip_y'] + j_y
+        
+        # Ta ukaz izvede diagonalni lift (X, Y, Z hkrati) naravnost v center
+        self.gcode.append(f"G0 X{active_x:.3f} Y{active_y:.3f} Z{c['z_high']}")
+
+        # --- 2. SPIRALA (POČASNO) ---
+        self._set_machine_speed('paint')
+        self.gcode.append(f"G1 Z{c['dip_z']}")
+        direction = 1 if (self.dip_count % 2 == 0) else -1
+        self.dip_count += 1
+        theta, max_theta = 0, 2.5 * math.pi
         while theta <= max_theta:
             r = (theta / max_theta) * c['dip_spiral_r']
-            self.gcode.append(f"G1 X{dip_x + r * math.cos(theta):.3f} Y{dip_y + r * math.sin(theta):.3f} F1500")
-            theta += d_theta
-        self.gcode.append("G4 P300")
+            self.gcode.append(f"G1 X{active_x + r * math.cos(theta * direction):.3f} Y{active_y + r * math.sin(theta * direction):.3f}")
+            theta += 0.1
+        self.gcode.append("G4 P300") 
+
+        # --- 3. IDEALEN DIAGONALNI IZHOD NA CILJNO TOČKO ---
+        self._set_machine_speed('travel')
+        # Rahli lift pred brisanjem ob rob
+        self.gcode.append(f"G0 Z{c['dip_z'] + 2.0}") 
+        angle = math.atan2(target_y - c['dip_y'], target_x - c['dip_x'])
+        # Brisanje ob rob
+        self.gcode.append(f"G0 X{c['dip_x'] + c['wipe_r'] * math.cos(angle):.3f} Y{c['dip_y'] + c['wipe_r'] * math.sin(angle):.3f}")
         
-        self.gcode.append(f"G1 Z{c['dip_z'] + 2.0} F1000")
-        angle = math.atan2(target_y - dip_y, target_x - dip_x)
-        self.gcode.append(f"G1 X{dip_x + c['wipe_r'] * math.cos(angle):.3f} Y{dip_y + c['wipe_r'] * math.sin(angle):.3f} F1500")
-        self.gcode.append(f"G0 X{dip_x + safe_r * math.cos(angle):.3f} Y{dip_y + safe_r * math.sin(angle):.3f} Z{c['z_high']} F{c['feed']}")
-        self.gcode.append(f"G0 X{target_x:.3f} Y{target_y:.3f} Z{c['z_low']} F{c['feed']}")
+        # Diagonalni spust naravnost na ciljno točko in varno višino z_low
+        self.gcode.append(f"G0 X{target_x:.3f} Y{target_y:.3f} Z{c['z_low']}")
         
         self.dist_since_dip = 0
+        self.current_max_dist = random.uniform(c.get('min_dist', 120.0), c.get('max_dist', 250.0))
         self._update_pos(target_x, target_y)
+
+    def _generate_linear_segments(self, img, res):
+        c = self.cfg
+        img_w, img_h = img.size
+        target_w_mm = c['target_width']
+        target_h_mm = target_w_mm * (img_h / img_w)
+        angle_rad = math.radians(c['infill_angle'])
+        cos_a, sin_a = math.cos(angle_rad), math.sin(angle_rad)
+        step_mm = c['brush_w'] * (1 - c['overlap'])
+        diag = math.hypot(target_w_mm, target_h_mm)
+        segments = []
+        for h in [i * step_mm for i in range(int(-diag/step_mm), int(diag/step_mm))]:
+            path = []
+            for d in [j/res for j in range(int(-diag*res), int(diag*res))]:
+                cx, cy = target_w_mm / 2, target_h_mm / 2
+                rx, ry = (d-cx)*cos_a-(h-cy)*sin_a+cx, (d-cx)*sin_a+(h-cy)*cos_a+cy
+                px, py = int(rx * res), int(ry * res)
+                if 0 <= px < img_w and 0 <= py < img_h and img.getpixel((px, py)) == 0:
+                    path.append([ry + c['y_off'], rx + c['x_off']])
+                else:
+                    if len(path) > 1: segments.append(np.array(path))
+                    path = []
+            if len(path) > 1: segments.append(np.array(path))
+        return segments
 
     def generate(self, img_path):
         c = self.cfg
-        # Naloži sliko in uporabi zrcaljenje če je potrebno
         img = Image.open(img_path).convert('L')
-        if c.get('mirror_x', False): img = img.transpose(Image.FLIP_LEFT_RIGHT)
-        if c.get('mirror_y', True):  img = img.transpose(Image.FLIP_TOP_BOTTOM)
-        img = img.point(lambda p: 0 if p < 140 else 255)
-        
-        res = 4 # pikslov na mm
+        if c.get('mirror_y', True): img = img.transpose(Image.FLIP_TOP_BOTTOM)
+        res = 2.0 
         target_w_mm = c['target_width']
-        target_h_mm = target_w_mm * (img.height / img.width)
-        img = img.resize((int(target_w_mm * res), int(target_h_mm * res)), Image.Resampling.NEAREST)
-        img_w, img_h = img.size
+        img = img.resize((int(target_w_mm * res), int(target_w_mm * (img.height/img.width) * res)), Image.Resampling.LANCZOS)
 
-        # Matematika za nagnjeno polnilo
-        angle_rad = math.radians(c['infill_angle'])
-        cos_a = math.cos(angle_rad)
-        sin_a = math.sin(angle_rad)
-        
-        # Razmik med linijami (projekcija na pravokotno os)
-        step_mm = c['brush_w'] * (1 - c['overlap'])
-        
-        # Določi območje skeniranja (diagonalno, da pokrijemo vse)
-        diag = math.hypot(target_w_mm, target_h_mm)
-        segments = []
+        if c['infill_type'] == 'concentric':
+            binary = (np.array(img) < 140).astype(float)
+            dist_map = distance_transform_edt(binary)
+            step_px = (c['brush_w'] * (1 - c['overlap'])) * res
+            paths = []
+            for d in np.arange(step_px / 2, np.max(dist_map), step_px):
+                for contour in measure.find_contours(dist_map, d):
+                    # Prilagodba koordinat za koncentrično polnilo
+                    paths.append(np.array([[pt[0]/res + c['y_off'], pt[1]/res + c['x_off']] for pt in contour]))
+        else:
+            paths = self._generate_linear_segments(img, res)
 
-        # Skeniramo po 'trakovih' (h) in znotraj trakov po 'dolžini' (d)
-        for h in [i * step_mm for i in range(int(-diag/step_mm), int(diag/step_mm))]:
-            start_pt = None
-            for d in [j/res for j in range(int(-diag*res), int(diag*res))]:
-                # Inverzna rotacija: pretvori nagnjene koordinate (d, h) v ravne (x, y)
-                # Središče rotacije je sredina slike
-                cx, cy = target_w_mm / 2, target_h_mm / 2
-                rx = (d - cx) * cos_a - (h - cy) * sin_a + cx
-                ry = (d - cx) * sin_a + (h - cy) * cos_a + cy
-                
-                # Preveri če je točka znotraj slike
-                px, py = int(rx * res), int(ry * res)
-                
-                is_black = False
-                if 0 <= px < img_w and 0 <= py < img_h:
-                    if img.getpixel((px, py)) == 0:
-                        is_black = True
-                
-                if is_black:
-                    if start_pt is None:
-                        start_pt = (rx + c['x_off'], ry + c['y_off'])
-                else:
-                    if start_pt is not None:
-                        segments.append({
-                            'x1': start_pt[0], 'y1': start_pt[1],
-                            'x2': rx + c['x_off'], 'y2': ry + c['y_off']
-                        })
-                        start_pt = None
-            if start_pt:
-                segments.append({'x1': start_pt[0], 'y1': start_pt[1], 'x2': rx + c['x_off'], 'y2': ry + c['y_off']})
-
-        # --- G-KODA IN OPTIMIZACIJA POTI ---
         self.gcode = ["G90", "G21"]
-        self.gcode.append(f"G0 Z{c['z_high']}")
-        
-        if segments:
-            self._perform_dip_and_travel(segments[0]['x1'], segments[0]['y1'])
+        if not paths: return "M2"
 
-        while segments:
-            cur_x, cur_y = self.current_pos
-            best_dist, best_idx, rev = float('inf'), -1, False
+        # Začetni dip na prvo točko prve poti
+        self._perform_dip_and_travel(paths[0][0][1], paths[0][0][0])
+
+        for path in paths:
+            # Premik na začetek nove poti (če nismo že tam)
+            if math.hypot(self.current_pos[0] - path[0][1], self.current_pos[1] - path[0][0]) > 0.5:
+                self._set_machine_speed('travel')
+                self.gcode.append(f"G0 X{path[0][1]:.3f} Y{path[0][0]:.3f} Z{c['z_low']}")
+                self._update_pos(path[0][1], path[0][0])
+
+            for i in range(1, len(path)):
+                px, py = path[i][1], path[i][0]
+                seg_len = math.hypot(px - self.current_pos[0], py - self.current_pos[1])
+
+                if (self.dist_since_dip + seg_len) > self.current_max_dist:
+                    self._perform_dip_and_travel(px, py)
+
+                self._set_machine_speed('paint')
+                self.gcode.append(f"G1 Z{c['z_paint']:.3f}")
+                self.gcode.append(f"G1 X{px:.3f} Y{py:.3f}")
+                self.dist_since_dip += seg_len
+                self._update_pos(px, py)
             
-            for i, s in enumerate(segments):
-                d1 = math.hypot(s['x1'] - cur_x, s['y1'] - cur_y)
-                d2 = math.hypot(s['x2'] - cur_x, s['y2'] - cur_y)
-                if d1 < best_dist: best_dist, best_idx, rev = d1, i, False
-                if d2 < best_dist: best_dist, best_idx, rev = d2, i, True
-            
-            s = segments.pop(best_idx)
-            x_s, y_s = (s['x2'], s['y2']) if rev else (s['x1'], s['y1'])
-            x_e, y_e = (s['x1'], s['y1']) if rev else (s['x2'], s['y2'])
-
-            if self.dist_since_dip > c['max_dist']:
-                self._perform_dip_and_travel(x_s, y_s)
-
-            self.gcode.append(f"G0 X{x_s:.3f} Y{y_s:.3f} Z{c['z_low']} F{c['feed']}")
-            self.gcode.append(f"G1 Z{c['z_paint']} F600")
-            self.gcode.append(f"G1 X{x_e:.3f} Y{y_e:.3f}")
             self.gcode.append(f"G0 Z{c['z_low']}")
-            
-            self.dist_since_dip += math.hypot(x_e - x_s, y_e - y_s)
-            self._update_pos(x_e, y_e)
 
-        self.gcode.append(f"G0 Z{c['z_high']}\nM2")
+        self.gcode.append("M2")
         return "\n".join(self.gcode)
 
 if __name__ == "__main__":
@@ -147,30 +149,30 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     config = {
-        'infill_angle': 0.0,   # Kot slikanja (slika ostane ravna)
-        'target_width': 180.0,
-        'brush_w':      1.5,    # Širina čopiča
-        'overlap':      0.4,    # Prekrivanje
-        'max_dist':     200.0,  # Max pot z enim namakanjem
-        
-        'z_paint':      0.0,    # Kontaktna višina
-        'z_low':        1.4,    
-        'z_high':       25.0,
-        'x_off':        00.0,   # Odmik od roba mize
-        'y_off':        60.0,
-        
-        'mirror_x':     False,
-        'mirror_y':     True,
-        
-        'dip_x':        91.0,   # Center petrijevke
+        'infill_type':  'concentric', # 'lines' ali 'concentric'
+        'infill_angle': 0.0,
+        'target_width': 280.0,
+        'brush_w':      1.4,
+        'overlap':      0.3,
+        'min_dist':     120.0,
+        'max_dist':     250.0,
+        'z_paint':      0.0,
+        'z_low':        1.6,
+        'z_high':       16.0,
+        'x_off':        16.0,
+        'y_off':        78.0,
+        'dip_x':        91.0,
         'dip_y':        25.0,
-        'dip_z':        1.5,
-        'dip_spiral_r': 18.0,   # Radij spirale v petrijevki
-        'wipe_r':       28.0,   # Radij brisanja ob rob
-        'feed':         300
+        'dip_z':        3.2,
+        'dip_jitter':   5.0,
+        'dip_spiral_r': 15.0,
+        'wipe_r':       27.0,
+        'feed':         1500,
+        'feed_paint':   600,
+        'accel_travel': 200,
+        'accel_paint':  20,
     }
 
     painter = SafeRasterPainter(config)
     with open(args.output, 'w') as f:
         f.write(painter.generate(args.input))
-    print(f"G-koda generirana. Slika je ravna, čopič slika pod kotom {config['infill_angle']}°.")
