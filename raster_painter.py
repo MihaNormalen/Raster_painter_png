@@ -18,6 +18,51 @@ class SafeRasterPainter:
     def _update_pos(self, x, y):
         self.current_pos = (x, y)
 
+    def _optimize_path_order(self, paths):
+        """Optimize path order using nearest neighbor algorithm to minimize travel distance."""
+        if len(paths) <= 1:
+            return paths
+        
+        optimized = []
+        remaining = list(paths)
+        current = remaining.pop(0)  # Start with first path
+        optimized.append(current)
+        
+        while remaining:
+            current_end = current[-1]
+            nearest_idx = 0
+            min_dist = float('inf')
+            should_reverse = False
+            
+            # Find nearest path (check both start and end points)
+            for idx, path in enumerate(remaining):
+                # Distance to start of path
+                dist_to_start = math.hypot(
+                    current_end[1] - path[0][1],
+                    current_end[0] - path[0][0]
+                )
+                # Distance to end of path
+                dist_to_end = math.hypot(
+                    current_end[1] - path[-1][1],
+                    current_end[0] - path[-1][0]
+                )
+                
+                if dist_to_start < min_dist:
+                    min_dist = dist_to_start
+                    nearest_idx = idx
+                    should_reverse = False
+                if dist_to_end < min_dist:
+                    min_dist = dist_to_end
+                    nearest_idx = idx
+                    should_reverse = True
+            
+            current = remaining.pop(nearest_idx)
+            if should_reverse:
+                current = current[::-1]  # Reverse the path
+            optimized.append(current)
+        
+        return optimized
+
     def _set_machine_speed(self, speed_type='travel'):
         c = self.cfg
         f = c['feed'] if speed_type == 'travel' else c['feed_paint']
@@ -118,6 +163,9 @@ class SafeRasterPainter:
         self.gcode = ["G90", "G21"]
         if not paths: return "M2"
 
+        # --- OPTIMIZE PATH ORDER ---
+        paths = self._optimize_path_order(paths)
+
         # --- DETAJL: VAREN ZAČETEK IZ HOME POLOŽAJA ---
         self._set_machine_speed('travel')
         self.gcode.append(f"G0 Z{c['z_high']}") # Najprej navpično gor na 16mm
@@ -154,10 +202,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     config = {
-        'infill_type':  'concentric', 
+        'infill_type':  'lines', # lines or concentric 
         'infill_angle': 0.0,
         'target_width': 280.0,
-        'brush_w':      9.4, # Popravljeno iz 7.4 na 1.4 za realno risanje
+        'brush_w':      9.4, 
         'overlap':      0.3,
         'min_dist':     120.0,
         'max_dist':     250.0,
