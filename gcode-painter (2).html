@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bacterial Painter · G-code Generator</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Mono:wght@400;700&display=swap');
+        
+        :root {
+            --bg-dark: #0a0e14;
+            --bg-mid: #151922;
+            --bg-light: #1f2430;
+            --accent-cyan: #00d4ff;
+            --accent-pink: #ff2e97;
+            --accent-yellow: #ffd700;
+            --text-bright: #e6edf3;
+            --text-dim: #8b949e;
+            --border: #30363d;
+            --success: #3fb950;
+            --danger: #f85149;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Space Mono', monospace;
+            background: var(--bg-dark);
+            color: var(--text-bright);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+        
+        /* Animated background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(0, 212, 255, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(255, 46, 151, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        header {
+            text-align: center;
+            padding: 3rem 0;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 3rem;
+            position: relative;
+        }
+        
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+            animation: fadeInDown 0.6s ease-out;
+        }
+        
+        .subtitle {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-dim);
+            font-size: 0.95rem;
+            letter-spacing: 0.05em;
+            animation: fadeInUp 0.6s ease-out 0.2s both;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 2rem;
+            animation: fadeIn 0.8s ease-out 0.3s both;
+        }
+        
+        .panel {
+            background: var(--bg-mid);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .panel:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 48px rgba(0, 212, 255, 0.15);
+        }
+        
+        .panel-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--accent-cyan);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .panel-title::before {
+            content: '▸';
+            color: var(--accent-cyan);
+            font-size: 1.5rem;
+        }
+        
+        .controls-panel {
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        .controls-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .controls-panel::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+            border-radius: 4px;
+        }
+        
+        .controls-panel::-webkit-scrollbar-thumb {
+            background: var(--accent-cyan);
+            border-radius: 4px;
+        }
+        
+        .control-section {
+            margin-bottom: 2rem;
+        }
+        
+        .section-header {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--accent-pink);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+        
+        .control-group {
+            margin-bottom: 1.25rem;
+        }
+        
+        label {
+            display: block;
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            margin-bottom: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        input[type="number"],
+        input[type="file"],
+        select {
+            width: 100%;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            color: var(--text-bright);
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        
+        input[type="number"]:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+        }
+        
+        input[type="file"] {
+            cursor: pointer;
+            padding: 1rem;
+        }
+        
+        input[type="file"]::file-selector-button {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-pink));
+            border: none;
+            color: var(--bg-dark);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-right: 1rem;
+            transition: transform 0.2s ease;
+        }
+        
+        input[type="file"]::file-selector-button:hover {
+            transform: scale(1.05);
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Space Mono', monospace;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-pink));
+            color: var(--bg-dark);
+            margin-bottom: 1rem;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 212, 255, 0.4);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-light);
+            color: var(--text-bright);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-secondary:hover {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 1px var(--accent-cyan);
+        }
+        
+        .preview-grid {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            gap: 2rem;
+        }
+        
+        .image-preview-container {
+            position: relative;
+        }
+        
+        .preview-canvas {
+            width: 100%;
+            background: var(--bg-light);
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .preview-canvas img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        
+        .preview-placeholder {
+            color: var(--text-dim);
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+        }
+        
+        .gcode-preview {
+            position: relative;
+            background: var(--bg-light);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        #gcodeCanvas {
+            width: 100%;
+            height: 600px;
+            display: block;
+            background: linear-gradient(135deg, #0a0e14 0%, #151922 100%);
+        }
+        
+        .stats-overlay {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(10, 14, 20, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            min-width: 200px;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: var(--text-dim);
+        }
+        
+        .stat-value {
+            color: var(--accent-cyan);
+            font-weight: 600;
+        }
+        
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-mid);
+            border: 2px solid var(--accent-cyan);
+            border-radius: 12px;
+            padding: 2rem 3rem;
+            z-index: 1000;
+            box-shadow: 0 16px 64px rgba(0, 212, 255, 0.3);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--border);
+            border-top: 4px solid var(--accent-cyan);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.05); }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls-panel {
+                max-height: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Bacterial Painter</h1>
+            <p class="subtitle">G-CODE GENERATOR FOR PETRI DISH PAINTING</p>
+        </header>
+        
+        <div class="main-grid">
+            <!-- Controls Panel -->
+            <div class="panel controls-panel">
+                <h2 class="panel-title">Configuration</h2>
+                
+                <div class="control-section">
+                    <div class="section-header">Image Input</div>
+                    <div class="control-group">
+                        <label for="imageFile">Upload Image</label>
+                        <input type="file" id="imageFile" accept="image/*">
+                    </div>
+                </div>
+                
+                <div class="control-section">
+                    <div class="section-header">Mode</div>
+                    <div class="control-group">
+                        <label for="mode">Operation Mode</label>
+                        <select id="mode">
+                            <option value="paint">Paint (with dipping)</option>
+                            <option value="plot">Plot (no dipping)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="control-section">
+                    <div class="section-header">Infill Settings</div>
+                    <div class="control-group">
+                        <label for="infillType">Infill Type</label>
+                        <select id="infillType">
+                            <option value="lines">Lines</option>
+                            <option value="concentric">Concentric</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="infillAngle">Infill Angle (°)</label>
+                        <input type="number" id="infillAngle" value="0" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label for="targetWidth">Target Width (mm)</label>
+                        <input type="number" id="targetWidth" value="280" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label for="brushW">Brush Width (mm)</label>
+                        <input type="number" id="brushW" value="1.4" step="0.1">
+                    </div>
+                    <div class="control-group">
+                        <label for="overlap">Overlap (0-1)</label>
+                        <input type="number" id="overlap" value="0.3" step="0.05" min="0" max="1">
+                    </div>
+                </div>
+                
+                <div class="control-section">
+                    <div class="section-header">Dipping Parameters</div>
+                    <div class="control-group">
+                        <label for="minDist">Min Distance (mm)</label>
+                        <input type="number" id="minDist" value="180" step="10">
+                    </div>
+                    <div class="control-group">
+                        <label for="maxDist">Max Distance (mm)</label>
+                        <input type="number" id="maxDist" value="220" step="10">
+                    </div>
+                    <div class="control-group">
+                        <label for="dipJitter">Dip Jitter (mm)</label>
+                        <input type="number" id="dipJitter" value="5" step="0.5">
+                    </div>
+                    <div class="control-group">
+                        <label for="dipSpiralR">Dip Spiral Radius (mm)</label>
+                        <input type="number" id="dipSpiralR" value="15" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label for="wipeR">Wipe Radius (mm)</label>
+                        <input type="number" id="wipeR" value="27" step="1">
+                    </div>
+                </div>
+                
+                <div class="control-section">
+                    <div class="section-header">Z-Heights</div>
+                    <div class="control-group">
+                        <label for="zPaint">Z Paint (mm)</label>
+                        <input type="number" id="zPaint" value="0.0" step="0.1">
+                    </div>
+                    <div class="control-group">
+                        <label for="zLow">Z Low (mm)</label>
+                        <input type="number" id="zLow" value="1.6" step="0.1">
+                    </div>
+                    <div class="control-group">
+                        <label for="zHigh">Z High (mm)</label>
+                        <input type="number" id="zHigh" value="16.0" step="0.5">
+                    </div>
+                    <div class="control-group">
+                        <label for="dipZ">Dip Z (mm)</label>
+                        <input type="number" id="dipZ" value="3.2" step="0.1">
+                    </div>
+                </div>
+                
+                <div class="control-section">
+                    <div class="section-header">Position Offsets</div>
+                    <div class="control-group">
+                        <label for="xOff">X Offset (mm)</label>
+                        <input type="number" id="xOff" value="16.0" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label for="yOff">Y Offset (mm)</label>
+                        <input type="number" id="yOff" value="78.0" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label for="dipX">Dip X (mm)</label>
+                        <input type="number" id="dipX" value="91.0" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label for="dipY">Dip Y (mm)</label>
+                        <input type="number" id="dipY" value="25.0" step="1">
+                    </div>
+                </div>
+                
+                <div class="control-section">
+                    <div class="section-header">Motion Settings</div>
+                    <div class="control-group">
+                        <label for="feed">Travel Feed (mm/min)</label>
+                        <input type="number" id="feed" value="1500" step="50">
+                    </div>
+                    <div class="control-group">
+                        <label for="feedPaint">Paint Feed (mm/min)</label>
+                        <input type="number" id="feedPaint" value="600" step="50">
+                    </div>
+                    <div class="control-group">
+                        <label for="accelTravel">Travel Accel (mm/s²)</label>
+                        <input type="number" id="accelTravel" value="200" step="10">
+                    </div>
+                    <div class="control-group">
+                        <label for="accelPaint">Paint Accel (mm/s²)</label>
+                        <input type="number" id="accelPaint" value="20" step="5">
+                    </div>
+                </div>
+                
+                <button class="btn btn-primary" id="generateBtn">Generate G-Code</button>
+                <button class="btn btn-secondary" id="downloadBtn" disabled>Download G-Code</button>
+            </div>
+            
+            <!-- Preview Panels -->
+            <div class="preview-grid">
+                <div class="panel image-preview-container">
+                    <h2 class="panel-title">Image Preview</h2>
+                    <div class="preview-canvas" id="imagePreview">
+                        <div class="preview-placeholder">Upload an image to preview</div>
+                    </div>
+                </div>
+                
+                <div class="panel">
+                    <h2 class="panel-title">G-Code Preview</h2>
+                    <div class="gcode-preview">
+                        <canvas id="gcodeCanvas"></canvas>
+                        <div class="stats-overlay" id="statsOverlay" style="display: none;">
+                            <div class="stat-row">
+                                <span class="stat-label">Lines:</span>
+                                <span class="stat-value" id="statLines">0</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Paths:</span>
+                                <span class="stat-value" id="statPaths">0</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Dips:</span>
+                                <span class="stat-value" id="statDips">0</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Est. Time:</span>
+                                <span class="stat-value" id="statTime">0 min</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="loading hidden" id="loading">
+        <div class="loading-spinner"></div>
+        <div style="text-align: center; color: var(--text-dim);">Processing...</div>
+    </div>
+    
+    <script>
+        // Global state
+        let currentImage = null;
+        let generatedGCode = null;
+        
+        // Image preview handler
+        document.getElementById('imageFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    currentImage = new Image();
+                    currentImage.onload = function() {
+                        const preview = document.getElementById('imagePreview');
+                        preview.innerHTML = `<img src="${event.target.result}" alt="Preview">`;
+                    };
+                    currentImage.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // G-code generator (JavaScript port of Python code)
+        class SafeRasterPainter {
+            constructor(cfg) {
+                this.cfg = cfg;
+                this.gcode = [];
+                this.distSinceDip = 0;
+                this.dipCount = 0;
+                this.currentPos = [cfg.xOff, cfg.yOff];
+                this.currentMaxDist = this.randomRange(cfg.minDist, cfg.maxDist);
+                this.paths = [];
+                this.mode = cfg.mode || 'paint';
+            }
+            
+            randomRange(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+            
+            updatePos(x, y) {
+                this.currentPos = [x, y];
+            }
+            
+            // Nearest neighbor path optimization
+            optimizePathOrder(paths) {
+                if (paths.length <= 1) return paths;
+                
+                const optimized = [];
+                const remaining = [...paths];
+                let current = remaining.shift(); // Start with first path
+                optimized.push(current);
+                
+                while (remaining.length > 0) {
+                    const currentEnd = current[current.length - 1];
+                    let nearestIdx = 0;
+                    let minDist = Infinity;
+                    let shouldReverse = false;
+                    
+                    // Find nearest path (check both start and end points)
+                    remaining.forEach((path, idx) => {
+                        const distToStart = Math.hypot(
+                            currentEnd[1] - path[0][1],
+                            currentEnd[0] - path[0][0]
+                        );
+                        const distToEnd = Math.hypot(
+                            currentEnd[1] - path[path.length - 1][1],
+                            currentEnd[0] - path[path.length - 1][0]
+                        );
+                        
+                        if (distToStart < minDist) {
+                            minDist = distToStart;
+                            nearestIdx = idx;
+                            shouldReverse = false;
+                        }
+                        if (distToEnd < minDist) {
+                            minDist = distToEnd;
+                            nearestIdx = idx;
+                            shouldReverse = true;
+                        }
+                    });
+                    
+                    current = remaining.splice(nearestIdx, 1)[0];
+                    if (shouldReverse) {
+                        current = current.slice().reverse();
+                    }
+                    optimized.push(current);
+                }
+                
+                return optimized;
+            }
+            
+            setMachineSpeed(speedType = 'travel') {
+                const c = this.cfg;
+                const f = speedType === 'travel' ? c.feed : c.feedPaint;
+                const accel = speedType === 'travel' ? c.accelTravel : c.accelPaint;
+                this.gcode.push("M400");
+                this.gcode.push(`M204 P${accel} T${accel}`);
+                this.gcode.push(`M203 X${f} Y${f} Z${f}`);
+                this.gcode.push(`G0 F${f}`);
+            }
+            
+            performDipAndTravel(targetX, targetY) {
+                const c = this.cfg;
+                
+                this.setMachineSpeed('travel');
+                const jX = this.randomRange(-c.dipJitter, c.dipJitter);
+                const jY = this.randomRange(-c.dipJitter, c.dipJitter);
+                const activeX = c.dipX + jX;
+                const activeY = c.dipY + jY;
+                
+                // Diagonal entry at z_high
+                this.gcode.push(`G0 X${activeX.toFixed(3)} Y${activeY.toFixed(3)} Z${c.zHigh}`);
+                
+                // Spiral
+                this.setMachineSpeed('paint');
+                this.gcode.push(`G1 Z${c.dipZ}`);
+                const direction = (this.dipCount % 2 === 0) ? 1 : -1;
+                this.dipCount++;
+                
+                let theta = 0;
+                const maxTheta = 2.5 * Math.PI;
+                while (theta <= maxTheta) {
+                    const r = (theta / maxTheta) * c.dipSpiralR;
+                    this.gcode.push(`G1 X${(activeX + r * Math.cos(theta * direction)).toFixed(3)} Y${(activeY + r * Math.sin(theta * direction)).toFixed(3)}`);
+                    theta += 0.1;
+                }
+                this.gcode.push("G4 P300");
+                
+                // Exit - lift to z_high first
+                this.setMachineSpeed('travel');
+                this.gcode.push(`G0 Z${c.zHigh}`);
+                
+                const angle = Math.atan2(targetY - c.dipY, targetX - c.dipX);
+                // Wipe at z_high
+                this.gcode.push(`G0 X${(c.dipX + c.wipeR * Math.cos(angle)).toFixed(3)} Y${(c.dipY + c.wipeR * Math.sin(angle)).toFixed(3)} Z${c.zHigh}`);
+                
+                // Diagonal descent to target
+                this.gcode.push(`G0 X${targetX.toFixed(3)} Y${targetY.toFixed(3)} Z${c.zLow}`);
+                
+                this.distSinceDip = 0;
+                this.currentMaxDist = this.randomRange(c.minDist, c.maxDist);
+                this.updatePos(targetX, targetY);
+            }
+            
+            generateLinearSegments(imgData, width, height, res) {
+                const c = this.cfg;
+                const targetWMm = c.targetWidth;
+                const targetHMm = targetWMm * (height / width);
+                const angleRad = c.infillAngle * Math.PI / 180;
+                const cosA = Math.cos(angleRad);
+                const sinA = Math.sin(angleRad);
+                const stepMm = c.brushW * (1 - c.overlap);
+                const diag = Math.hypot(targetWMm, targetHMm);
+                const segments = [];
+                
+                const steps = Math.floor(diag / stepMm);
+                for (let i = -steps; i < steps; i++) {
+                    const h = i * stepMm;
+                    let path = [];
+                    
+                    const dSteps = Math.floor(diag * res);
+                    for (let j = -dSteps; j < dSteps; j++) {
+                        const d = j / res;
+                        const cx = targetWMm / 2;
+                        const cy = targetHMm / 2;
+                        const rx = (d - cx) * cosA - (h - cy) * sinA + cx;
+                        const ry = (d - cx) * sinA + (h - cy) * cosA + cy;
+                        const px = Math.floor(rx * res);
+                        const py = Math.floor(ry * res);
+                        
+                        if (px >= 0 && px < width && py >= 0 && py < height) {
+                            const idx = (py * width + px) * 4;
+                            if (imgData.data[idx] < 140) {
+                                path.push([ry + c.yOff, rx + c.xOff]);
+                            } else {
+                                if (path.length > 1) segments.push(path);
+                                path = [];
+                            }
+                        } else {
+                            if (path.length > 1) segments.push(path);
+                            path = [];
+                        }
+                    }
+                    if (path.length > 1) segments.push(path);
+                }
+                
+                return segments;
+            }
+            
+            generateConcentricPaths(imgData, width, height, res) {
+                const c = this.cfg;
+                // Simple concentric approximation - convert to binary and trace contours
+                const binary = new Array(height);
+                for (let y = 0; y < height; y++) {
+                    binary[y] = new Array(width);
+                    for (let x = 0; x < width; x++) {
+                        const idx = (y * width + x) * 4;
+                        binary[y][x] = imgData.data[idx] < 140 ? 1 : 0;
+                    }
+                }
+                
+                const paths = [];
+                const stepPx = (c.brushW * (1 - c.overlap)) * res;
+                
+                // Simplified contour following
+                const processed = new Array(height).fill(0).map(() => new Array(width).fill(false));
+                
+                for (let offset = 0; offset < Math.min(width, height) / 2; offset += stepPx) {
+                    const path = [];
+                    const margin = Math.floor(offset);
+                    
+                    // Trace perimeter at this offset
+                    for (let y = margin; y < height - margin; y++) {
+                        for (let x = margin; x < width - margin; x++) {
+                            if (binary[y][x] === 1 && !processed[y][x]) {
+                                // Check if on edge
+                                const isEdge = (x === margin || x === width - margin - 1 || 
+                                              y === margin || y === height - margin - 1 ||
+                                              (x > 0 && binary[y][x-1] === 0) ||
+                                              (x < width-1 && binary[y][x+1] === 0) ||
+                                              (y > 0 && binary[y-1][x] === 0) ||
+                                              (y < height-1 && binary[y+1][x] === 0));
+                                
+                                if (isEdge) {
+                                    path.push([y / res + c.yOff, x / res + c.xOff]);
+                                    processed[y][x] = true;
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (path.length > 5) paths.push(path);
+                }
+                
+                return paths;
+            }
+            
+            generate(imgData, width, height) {
+                const c = this.cfg;
+                const res = 2.0;
+                
+                // Generate paths
+                if (c.infillType === 'concentric') {
+                    this.paths = this.generateConcentricPaths(imgData, width, height, res);
+                } else {
+                    this.paths = this.generateLinearSegments(imgData, width, height, res);
+                }
+                
+                this.gcode = ["G90", "G21"];
+                if (this.paths.length === 0) return "M2";
+                
+                // Optimize path order for both modes
+                this.paths = this.optimizePathOrder(this.paths);
+                
+                // PLOT MODE - no dipping, just pen up/down
+                if (this.mode === 'plot') {
+                    this.setMachineSpeed('travel');
+                    this.gcode.push(`G0 Z${c.zHigh}`);
+                    
+                    for (const path of this.paths) {
+                        // Move to start of path (pen up)
+                        this.setMachineSpeed('travel');
+                        this.gcode.push(`G0 X${path[0][1].toFixed(3)} Y${path[0][0].toFixed(3)} Z${c.zLow}`);
+                        this.updatePos(path[0][1], path[0][0]);
+                        
+                        // Lower pen and draw
+                        this.setMachineSpeed('paint');
+                        this.gcode.push(`G1 Z${c.zPaint.toFixed(3)}`);
+                        
+                        for (let i = 1; i < path.length; i++) {
+                            const px = path[i][1];
+                            const py = path[i][0];
+                            this.gcode.push(`G1 X${px.toFixed(3)} Y${py.toFixed(3)}`);
+                            this.updatePos(px, py);
+                        }
+                        
+                        // Lift pen
+                        this.gcode.push(`G0 Z${c.zLow}`);
+                    }
+                    
+                    this.gcode.push("M2");
+                    return this.gcode.join('\n');
+                }
+                
+                // PAINT MODE - with dipping (now optimized!)
+                this.setMachineSpeed('travel');
+                this.gcode.push(`G0 Z${c.zHigh}`);
+                this.performDipAndTravel(this.paths[0][0][1], this.paths[0][0][0]);
+                
+                // Process all paths
+                for (const path of this.paths) {
+                    const dist = Math.hypot(this.currentPos[0] - path[0][1], this.currentPos[1] - path[0][0]);
+                    if (dist > 0.5) {
+                        this.setMachineSpeed('travel');
+                        this.gcode.push(`G0 X${path[0][1].toFixed(3)} Y${path[0][0].toFixed(3)} Z${c.zLow}`);
+                        this.updatePos(path[0][1], path[0][0]);
+                    }
+                    
+                    for (let i = 1; i < path.length; i++) {
+                        const px = path[i][1];
+                        const py = path[i][0];
+                        const segLen = Math.hypot(px - this.currentPos[0], py - this.currentPos[1]);
+                        
+                        if ((this.distSinceDip + segLen) > this.currentMaxDist) {
+                            this.performDipAndTravel(px, py);
+                        }
+                        
+                        this.setMachineSpeed('paint');
+                        this.gcode.push(`G1 Z${c.zPaint.toFixed(3)}`);
+                        this.gcode.push(`G1 X${px.toFixed(3)} Y${py.toFixed(3)}`);
+                        this.distSinceDip += segLen;
+                        this.updatePos(px, py);
+                    }
+                    
+                    this.gcode.push(`G0 Z${c.zLow}`);
+                }
+                
+                this.gcode.push("M2");
+                return this.gcode.join('\n');
+            }
+        }
+        
+        // G-code visualization
+        function visualizeGCode(gcode, paths, mode) {
+            const canvas = document.getElementById('gcodeCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas size
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (!paths || paths.length === 0) return;
+            
+            // Find bounds
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            paths.forEach(path => {
+                path.forEach(point => {
+                    minX = Math.min(minX, point[1]);
+                    minY = Math.min(minY, point[0]);
+                    maxX = Math.max(maxX, point[1]);
+                    maxY = Math.max(maxY, point[0]);
+                });
+            });
+            
+            const margin = 40;
+            const scaleX = (canvas.width - margin * 2) / (maxX - minX);
+            const scaleY = (canvas.height - margin * 2) / (maxY - minY);
+            const scale = Math.min(scaleX, scaleY);
+            
+            const offsetX = margin - minX * scale + (canvas.width - margin * 2 - (maxX - minX) * scale) / 2;
+            const offsetY = margin - minY * scale + (canvas.height - margin * 2 - (maxY - minY) * scale) / 2;
+            
+            // Draw travel moves (show optimization for both modes)
+            ctx.strokeStyle = mode === 'plot' ? 'rgba(255, 46, 151, 0.3)' : 'rgba(0, 212, 255, 0.2)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            
+            for (let i = 0; i < paths.length - 1; i++) {
+                const endPoint = paths[i][paths[i].length - 1];
+                const startPoint = paths[i + 1][0];
+                
+                const x1 = endPoint[1] * scale + offsetX;
+                const y1 = endPoint[0] * scale + offsetY;
+                const x2 = startPoint[1] * scale + offsetX;
+                const y2 = startPoint[0] * scale + offsetY;
+                
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+            
+            // Draw paths
+            paths.forEach((path, pathIdx) => {
+                ctx.beginPath();
+                const hue = (pathIdx / paths.length) * 360;
+                ctx.strokeStyle = `hsl(${hue}, 80%, 60%)`;
+                ctx.lineWidth = 2;
+                
+                path.forEach((point, idx) => {
+                    const x = point[1] * scale + offsetX;
+                    const y = point[0] * scale + offsetY;
+                    
+                    if (idx === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                });
+                
+                ctx.stroke();
+            });
+            
+            // Update stats
+            const lines = gcode.split('\n').length;
+            const dips = (gcode.match(/G4 P300/g) || []).length;
+            
+            document.getElementById('statLines').textContent = lines;
+            document.getElementById('statPaths').textContent = paths.length;
+            document.getElementById('statDips').textContent = mode === 'plot' ? 'N/A' : dips;
+            document.getElementById('statTime').textContent = Math.ceil(lines / 20) + ' min';
+            document.getElementById('statsOverlay').style.display = 'block';
+        }
+        
+        // Generate button handler
+        document.getElementById('generateBtn').addEventListener('click', async function() {
+            if (!currentImage) {
+                alert('Please upload an image first');
+                return;
+            }
+            
+            document.getElementById('loading').classList.remove('hidden');
+            
+            // Small delay to show loading
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            try {
+                // Get configuration
+                const config = {
+                    mode: document.getElementById('mode').value,
+                    infillType: document.getElementById('infillType').value,
+                    infillAngle: parseFloat(document.getElementById('infillAngle').value),
+                    targetWidth: parseFloat(document.getElementById('targetWidth').value),
+                    brushW: parseFloat(document.getElementById('brushW').value),
+                    overlap: parseFloat(document.getElementById('overlap').value),
+                    minDist: parseFloat(document.getElementById('minDist').value),
+                    maxDist: parseFloat(document.getElementById('maxDist').value),
+                    zPaint: parseFloat(document.getElementById('zPaint').value),
+                    zLow: parseFloat(document.getElementById('zLow').value),
+                    zHigh: parseFloat(document.getElementById('zHigh').value),
+                    dipZ: parseFloat(document.getElementById('dipZ').value),
+                    xOff: parseFloat(document.getElementById('xOff').value),
+                    yOff: parseFloat(document.getElementById('yOff').value),
+                    dipX: parseFloat(document.getElementById('dipX').value),
+                    dipY: parseFloat(document.getElementById('dipY').value),
+                    dipJitter: parseFloat(document.getElementById('dipJitter').value),
+                    dipSpiralR: parseFloat(document.getElementById('dipSpiralR').value),
+                    wipeR: parseFloat(document.getElementById('wipeR').value),
+                    feed: parseFloat(document.getElementById('feed').value),
+                    feedPaint: parseFloat(document.getElementById('feedPaint').value),
+                    accelTravel: parseFloat(document.getElementById('accelTravel').value),
+                    accelPaint: parseFloat(document.getElementById('accelPaint').value)
+                };
+                
+                // Process image
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                const res = 2.0;
+                const targetWidth = config.targetWidth * res;
+                const targetHeight = targetWidth * (currentImage.height / currentImage.width);
+                
+                canvas.width = targetWidth;
+                canvas.height = targetHeight;
+                ctx.drawImage(currentImage, 0, 0, targetWidth, targetHeight);
+                
+                const imgData = ctx.getImageData(0, 0, targetWidth, targetHeight);
+                
+                // Generate G-code
+                const painter = new SafeRasterPainter(config);
+                generatedGCode = painter.generate(imgData, targetWidth, targetHeight);
+                
+                // Visualize
+                visualizeGCode(generatedGCode, painter.paths, config.mode);
+                
+                // Enable download
+                document.getElementById('downloadBtn').disabled = false;
+                
+            } catch (error) {
+                console.error('Generation error:', error);
+                alert('Error generating G-code: ' + error.message);
+            } finally {
+                document.getElementById('loading').classList.add('hidden');
+            }
+        });
+        
+        // Download button handler
+        document.getElementById('downloadBtn').addEventListener('click', function() {
+            if (!generatedGCode) return;
+            
+            const blob = new Blob([generatedGCode], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'bacterial_painter.gcode';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+    </script>
+</body>
+</html>
