@@ -35,7 +35,6 @@
             line-height: 1.6;
         }
         
-        /* Animated background */
         body::before {
             content: '';
             position: fixed;
@@ -63,7 +62,6 @@
             padding: 3rem 0;
             border-bottom: 2px solid var(--border);
             margin-bottom: 3rem;
-            position: relative;
         }
         
         h1 {
@@ -75,7 +73,6 @@
             background-clip: text;
             margin-bottom: 0.5rem;
             letter-spacing: -0.02em;
-            animation: fadeInDown 0.6s ease-out;
         }
         
         .subtitle {
@@ -83,14 +80,12 @@
             color: var(--text-dim);
             font-size: 0.95rem;
             letter-spacing: 0.05em;
-            animation: fadeInUp 0.6s ease-out 0.2s both;
         }
         
         .main-grid {
             display: grid;
             grid-template-columns: 400px 1fr;
             gap: 2rem;
-            animation: fadeIn 0.8s ease-out 0.3s both;
         }
         
         .panel {
@@ -99,12 +94,6 @@
             border-radius: 12px;
             padding: 2rem;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .panel:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 48px rgba(0, 212, 255, 0.15);
         }
         
         .panel-title {
@@ -146,6 +135,12 @@
         
         .control-section {
             margin-bottom: 2rem;
+            transition: opacity 0.3s ease;
+        }
+        
+        .control-section.disabled {
+            opacity: 0.4;
+            pointer-events: none;
         }
         
         .section-header {
@@ -205,137 +200,80 @@
             cursor: pointer;
             font-weight: 600;
             margin-right: 1rem;
-            transition: transform 0.2s ease;
         }
         
-        input[type="file"]::file-selector-button:hover {
-            transform: scale(1.05);
-        }
-        
-        .btn {
+        button {
             width: 100%;
-            padding: 1rem;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-pink));
             border: none;
+            color: var(--bg-dark);
+            padding: 1rem 2rem;
             border-radius: 8px;
             font-family: 'Space Mono', monospace;
             font-size: 1rem;
             font-weight: 700;
             cursor: pointer;
-            transition: all 0.3s ease;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            position: relative;
-            overflow: hidden;
+            margin-top: 1rem;
         }
         
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.2);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
-        
-        .btn:hover::before {
-            width: 300px;
-            height: 300px;
-        }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-pink));
-            color: var(--bg-dark);
-            margin-bottom: 1rem;
-        }
-        
-        .btn-primary:hover {
+        button:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 8px 24px rgba(0, 212, 255, 0.4);
         }
         
-        .btn-secondary {
-            background: var(--bg-light);
-            color: var(--text-bright);
-            border: 1px solid var(--border);
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         
-        .btn-secondary:hover {
-            border-color: var(--accent-cyan);
-            box-shadow: 0 0 0 1px var(--accent-cyan);
-        }
-        
-        .preview-grid {
-            display: grid;
-            grid-template-rows: auto 1fr;
-            gap: 2rem;
-        }
-        
-        .image-preview-container {
+        .preview-panel {
             position: relative;
+            min-height: 600px;
         }
         
-        .preview-canvas {
+        .preview-container {
             width: 100%;
+            min-height: 400px;
             background: var(--bg-light);
-            border: 2px dashed var(--border);
             border-radius: 8px;
-            min-height: 300px;
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
-            overflow: hidden;
         }
         
-        .preview-canvas img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-        }
-        
-        .preview-placeholder {
+        .placeholder {
             color: var(--text-dim);
-            text-align: center;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.9rem;
         }
         
-        .gcode-preview {
-            position: relative;
-            background: var(--bg-light);
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        
+        #previewCanvas,
         #gcodeCanvas {
-            width: 100%;
-            height: 600px;
-            display: block;
-            background: linear-gradient(135deg, #0a0e14 0%, #151922 100%);
+            max-width: 100%;
+            border-radius: 8px;
+            display: none;
         }
         
         .stats-overlay {
             position: absolute;
-            top: 1rem;
-            right: 1rem;
+            top: 2rem;
+            right: 2rem;
             background: rgba(10, 14, 20, 0.9);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--border);
+            border: 1px solid var(--accent-cyan);
             border-radius: 8px;
             padding: 1rem;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-            color: var(--text-dim);
-            min-width: 200px;
+            font-size: 0.85rem;
+            display: none;
+            backdrop-filter: blur(10px);
         }
         
         .stat-row {
             display: flex;
             justify-content: space-between;
+            gap: 1rem;
             margin-bottom: 0.5rem;
         }
         
@@ -350,108 +288,73 @@
         
         .loading {
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: var(--bg-mid);
-            border: 2px solid var(--accent-cyan);
-            border-radius: 12px;
-            padding: 2rem 3rem;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 14, 20, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
             z-index: 1000;
-            box-shadow: 0 16px 64px rgba(0, 212, 255, 0.3);
-            animation: pulse 2s ease-in-out infinite;
-        }
-        
-        .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid var(--border);
-            border-top: 4px solid var(--accent-cyan);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        @keyframes pulse {
-            0%, 100% { transform: translate(-50%, -50%) scale(1); }
-            50% { transform: translate(-50%, -50%) scale(1.05); }
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
         }
         
         .hidden {
-            display: none;
+            display: none !important;
         }
         
-        /* Responsive */
-        @media (max-width: 1200px) {
-            .main-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .controls-panel {
-                max-height: none;
-            }
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid var(--border);
+            border-top-color: var(--accent-cyan);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .info-text {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-top: 0.25rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .highlight {
+            color: var(--accent-yellow);
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Bacterial Painter</h1>
-            <p class="subtitle">G-CODE GENERATOR FOR PETRI DISH PAINTING</p>
+            <h1>BACTERIAL PAINTER</h1>
+            <div class="subtitle">G-CODE GENERATOR FOR PRECISION BIOART</div>
         </header>
         
         <div class="main-grid">
-            <!-- Controls Panel -->
             <div class="panel controls-panel">
-                <h2 class="panel-title">Configuration</h2>
+                <div class="panel-title">Configuration</div>
                 
                 <div class="control-section">
                     <div class="section-header">Image Input</div>
                     <div class="control-group">
-                        <label for="imageFile">Upload Image</label>
-                        <input type="file" id="imageFile" accept="image/*">
+                        <label for="imageUpload">Upload Image</label>
+                        <input type="file" id="imageUpload" accept="image/*">
+                        <div class="info-text">Supports PNG, JPG, WebP</div>
                     </div>
                 </div>
                 
                 <div class="control-section">
-                    <div class="section-header">Mode</div>
+                    <div class="section-header">Generation Mode</div>
                     <div class="control-group">
-                        <label for="mode">Operation Mode</label>
+                        <label for="mode">Mode</label>
                         <select id="mode">
                             <option value="paint">Paint (with dipping)</option>
-                            <option value="plot">Plot (no dipping)</option>
+                            <option value="plot">Plot (continuous)</option>
                         </select>
                     </div>
                 </div>
@@ -461,147 +364,153 @@
                     <div class="control-group">
                         <label for="infillType">Infill Type</label>
                         <select id="infillType">
-                            <option value="lines">Lines</option>
+                            <option value="linear">Linear</option>
                             <option value="concentric">Concentric</option>
                         </select>
                     </div>
-                    <div class="control-group">
-                        <label for="infillAngle">Infill Angle (°)</label>
-                        <input type="number" id="infillAngle" value="0" step="1">
+                    <div class="control-group" id="angleGroup">
+                        <label for="infillAngle">Infill Angle (degrees)</label>
+                        <input type="number" id="infillAngle" value="0" step="1" min="-180" max="180">
+                        <div class="info-text">Only for linear infill</div>
                     </div>
                     <div class="control-group">
+                        <label for="resolution">Resolution (px/mm) <span class="highlight">★</span></label>
+                        <input type="number" id="resolution" value="2.0" step="0.1" min="0.5" max="10">
+                        <div class="info-text">Higher = more detail</div>
+                    </div>
+                </div>
+                
+                <div class="control-section">
+                    <div class="section-header">Dimensions</div>
+                    <div class="control-group">
                         <label for="targetWidth">Target Width (mm)</label>
-                        <input type="number" id="targetWidth" value="280" step="1">
+                        <input type="number" id="targetWidth" value="50" step="1" min="1">
                     </div>
                     <div class="control-group">
                         <label for="brushW">Brush Width (mm)</label>
-                        <input type="number" id="brushW" value="1.4" step="0.1">
+                        <input type="number" id="brushW" value="1.0" step="0.1" min="0.1">
                     </div>
                     <div class="control-group">
-                        <label for="overlap">Overlap (0-1)</label>
-                        <input type="number" id="overlap" value="0.3" step="0.05" min="0" max="1">
+                        <label for="overlap">Line Overlap (0-1)</label>
+                        <input type="number" id="overlap" value="0.2" step="0.05" min="0" max="0.9">
                     </div>
                 </div>
                 
-                <div class="control-section">
+                <div class="control-section" id="dippingSection">
                     <div class="section-header">Dipping Parameters</div>
                     <div class="control-group">
-                        <label for="minDist">Min Distance (mm)</label>
-                        <input type="number" id="minDist" value="180" step="10">
+                        <label for="minDist">Min Distance Before Dip (mm)</label>
+                        <input type="number" id="minDist" value="30" step="1" min="1">
                     </div>
                     <div class="control-group">
-                        <label for="maxDist">Max Distance (mm)</label>
-                        <input type="number" id="maxDist" value="220" step="10">
-                    </div>
-                    <div class="control-group">
-                        <label for="dipJitter">Dip Jitter (mm)</label>
-                        <input type="number" id="dipJitter" value="5" step="0.5">
-                    </div>
-                    <div class="control-group">
-                        <label for="dipSpiralR">Dip Spiral Radius (mm)</label>
-                        <input type="number" id="dipSpiralR" value="15" step="1">
-                    </div>
-                    <div class="control-group">
-                        <label for="wipeR">Wipe Radius (mm)</label>
-                        <input type="number" id="wipeR" value="27" step="1">
+                        <label for="maxDist">Max Distance Before Dip (mm)</label>
+                        <input type="number" id="maxDist" value="50" step="1" min="1">
                     </div>
                 </div>
                 
                 <div class="control-section">
-                    <div class="section-header">Z-Heights</div>
+                    <div class="section-header">Z Heights</div>
                     <div class="control-group">
-                        <label for="zPaint">Z Paint (mm)</label>
+                        <label for="zPaint">Paint Height (mm)</label>
                         <input type="number" id="zPaint" value="0.0" step="0.1">
                     </div>
                     <div class="control-group">
-                        <label for="zLow">Z Low (mm)</label>
-                        <input type="number" id="zLow" value="1.6" step="0.1">
+                        <label for="zLow">Low Height (mm)</label>
+                        <input type="number" id="zLow" value="2.0" step="0.1">
                     </div>
                     <div class="control-group">
-                        <label for="zHigh">Z High (mm)</label>
-                        <input type="number" id="zHigh" value="16.0" step="0.5">
+                        <label for="zHigh">High Height (mm)</label>
+                        <input type="number" id="zHigh" value="10.0" step="0.1">
                     </div>
-                    <div class="control-group">
-                        <label for="dipZ">Dip Z (mm)</label>
-                        <input type="number" id="dipZ" value="3.2" step="0.1">
+                    <div class="control-group" id="dipZGroup">
+                        <label for="dipZ">Dip Depth (mm)</label>
+                        <input type="number" id="dipZ" value="-5.0" step="0.1">
                     </div>
                 </div>
                 
                 <div class="control-section">
-                    <div class="section-header">Position Offsets</div>
+                    <div class="section-header">Offsets</div>
                     <div class="control-group">
                         <label for="xOff">X Offset (mm)</label>
-                        <input type="number" id="xOff" value="16.0" step="1">
+                        <input type="number" id="xOff" value="0" step="1">
                     </div>
                     <div class="control-group">
                         <label for="yOff">Y Offset (mm)</label>
-                        <input type="number" id="yOff" value="78.0" step="1">
+                        <input type="number" id="yOff" value="0" step="1">
+                    </div>
+                </div>
+                
+                <div class="control-section" id="dipStationSection">
+                    <div class="section-header">Dip Station</div>
+                    <div class="control-group">
+                        <label for="dipX">Dip X Position (mm)</label>
+                        <input type="number" id="dipX" value="100" step="1">
                     </div>
                     <div class="control-group">
-                        <label for="dipX">Dip X (mm)</label>
-                        <input type="number" id="dipX" value="91.0" step="1">
+                        <label for="dipY">Dip Y Position (mm)</label>
+                        <input type="number" id="dipY" value="100" step="1">
                     </div>
                     <div class="control-group">
-                        <label for="dipY">Dip Y (mm)</label>
-                        <input type="number" id="dipY" value="25.0" step="1">
+                        <label for="dipJitter">Dip Jitter (mm)</label>
+                        <input type="number" id="dipJitter" value="2.0" step="0.1" min="0">
+                    </div>
+                    <div class="control-group">
+                        <label for="dipSpiralR">Dip Spiral Radius (mm)</label>
+                        <input type="number" id="dipSpiralR" value="3.0" step="0.1" min="0">
+                    </div>
+                    <div class="control-group">
+                        <label for="wipeR">Wipe Radius (mm)</label>
+                        <input type="number" id="wipeR" value="5.0" step="0.1" min="0">
                     </div>
                 </div>
                 
                 <div class="control-section">
-                    <div class="section-header">Motion Settings</div>
+                    <div class="section-header">Speed & Acceleration</div>
                     <div class="control-group">
-                        <label for="feed">Travel Feed (mm/min)</label>
-                        <input type="number" id="feed" value="1500" step="50">
+                        <label for="feed">Travel Feed Rate (mm/s)</label>
+                        <input type="number" id="feed" value="100" step="10" min="1">
                     </div>
                     <div class="control-group">
-                        <label for="feedPaint">Paint Feed (mm/min)</label>
-                        <input type="number" id="feedPaint" value="600" step="50">
+                        <label for="feedPaint">Paint Feed Rate (mm/s)</label>
+                        <input type="number" id="feedPaint" value="50" step="5" min="1">
                     </div>
                     <div class="control-group">
-                        <label for="accelTravel">Travel Accel (mm/s²)</label>
-                        <input type="number" id="accelTravel" value="200" step="10">
+                        <label for="accelTravel">Travel Acceleration (mm/s²)</label>
+                        <input type="number" id="accelTravel" value="1000" step="100" min="10">
                     </div>
                     <div class="control-group">
-                        <label for="accelPaint">Paint Accel (mm/s²)</label>
-                        <input type="number" id="accelPaint" value="20" step="5">
+                        <label for="accelPaint">Paint Acceleration (mm/s²)</label>
+                        <input type="number" id="accelPaint" value="500" step="50" min="10">
                     </div>
                 </div>
                 
-                <button class="btn btn-primary" id="generateBtn">Generate G-Code</button>
-                <button class="btn btn-secondary" id="downloadBtn" disabled>Download G-Code</button>
+                <button id="generateBtn">Generate G-Code</button>
+                <button id="downloadBtn" disabled>Download G-Code</button>
             </div>
             
-            <!-- Preview Panels -->
-            <div class="preview-grid">
-                <div class="panel image-preview-container">
-                    <h2 class="panel-title">Image Preview</h2>
-                    <div class="preview-canvas" id="imagePreview">
-                        <div class="preview-placeholder">Upload an image to preview</div>
-                    </div>
+            <div class="panel preview-panel">
+                <div class="panel-title">Preview</div>
+                <div class="preview-container" id="previewContainer">
+                    <div class="placeholder" id="placeholder">Upload an image to begin</div>
+                    <canvas id="previewCanvas"></canvas>
+                    <canvas id="gcodeCanvas"></canvas>
                 </div>
-                
-                <div class="panel">
-                    <h2 class="panel-title">G-Code Preview</h2>
-                    <div class="gcode-preview">
-                        <canvas id="gcodeCanvas"></canvas>
-                        <div class="stats-overlay" id="statsOverlay" style="display: none;">
-                            <div class="stat-row">
-                                <span class="stat-label">Lines:</span>
-                                <span class="stat-value" id="statLines">0</span>
-                            </div>
-                            <div class="stat-row">
-                                <span class="stat-label">Paths:</span>
-                                <span class="stat-value" id="statPaths">0</span>
-                            </div>
-                            <div class="stat-row">
-                                <span class="stat-label">Dips:</span>
-                                <span class="stat-value" id="statDips">0</span>
-                            </div>
-                            <div class="stat-row">
-                                <span class="stat-label">Est. Time:</span>
-                                <span class="stat-value" id="statTime">0 min</span>
-                            </div>
-                        </div>
+                <div class="stats-overlay" id="statsOverlay">
+                    <div class="stat-row">
+                        <span class="stat-label">G-code Lines:</span>
+                        <span class="stat-value" id="statLines">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Paths:</span>
+                        <span class="stat-value" id="statPaths">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Dips:</span>
+                        <span class="stat-value" id="statDips">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Est. Time:</span>
+                        <span class="stat-value" id="statTime">0 min</span>
                     </div>
                 </div>
             </div>
@@ -609,318 +518,420 @@
     </div>
     
     <div class="loading hidden" id="loading">
-        <div class="loading-spinner"></div>
-        <div style="text-align: center; color: var(--text-dim);">Processing...</div>
+        <div class="spinner"></div>
     </div>
     
     <script>
-        // Global state
         let currentImage = null;
-        let generatedGCode = null;
+        let generatedGCode = '';
         
-        // Image preview handler
-        document.getElementById('imageFile').addEventListener('change', function(e) {
+        // Mode and infill type change handlers
+        function updateUIState() {
+            const isPlotMode = document.getElementById('mode').value === 'plot';
+            const isLinear = document.getElementById('infillType').value === 'linear';
+            
+            document.getElementById('dippingSection').classList.toggle('disabled', isPlotMode);
+            document.getElementById('dipStationSection').classList.toggle('disabled', isPlotMode);
+            document.getElementById('dipZGroup').classList.toggle('disabled', isPlotMode);
+            document.getElementById('angleGroup').classList.toggle('disabled', !isLinear);
+        }
+        
+        document.getElementById('mode').addEventListener('change', updateUIState);
+        document.getElementById('infillType').addEventListener('change', updateUIState);
+        
+        // Image upload handler
+        document.getElementById('imageUpload').addEventListener('change', function(e) {
             const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    currentImage = new Image();
-                    currentImage.onload = function() {
-                        const preview = document.getElementById('imagePreview');
-                        preview.innerHTML = `<img src="${event.target.result}" alt="Preview">`;
-                    };
-                    currentImage.src = event.target.result;
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    currentImage = img;
+                    
+                    const canvas = document.getElementById('previewCanvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    const containerWidth = document.getElementById('previewContainer').offsetWidth;
+                    const aspectRatio = img.height / img.width;
+                    
+                    canvas.width = Math.min(containerWidth - 40, img.width);
+                    canvas.height = canvas.width * aspectRatio;
+                    
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    document.getElementById('placeholder').classList.add('hidden');
+                    canvas.style.display = 'block';
+                    document.getElementById('gcodeCanvas').style.display = 'none';
+                    document.getElementById('statsOverlay').style.display = 'none';
                 };
-                reader.readAsDataURL(file);
-            }
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
         });
         
-        // G-code generator (JavaScript port of Python code)
-        class SafeRasterPainter {
+        // G-code Generator
+        class GCodePainter {
             constructor(cfg) {
                 this.cfg = cfg;
                 this.gcode = [];
+                this.currentPos = [0, 0];
                 this.distSinceDip = 0;
+                this.currentMaxDist = 0;
                 this.dipCount = 0;
-                this.currentPos = [cfg.xOff, cfg.yOff];
-                this.currentMaxDist = this.randomRange(cfg.minDist, cfg.maxDist);
                 this.paths = [];
-                this.mode = cfg.mode || 'paint';
+                this.imgHeightMM = 0;
             }
             
             randomRange(min, max) {
-                return Math.random() * (max - min) + min;
+                return min + Math.random() * (max - min);
             }
             
             updatePos(x, y) {
                 this.currentPos = [x, y];
             }
             
-            // Nearest neighbor path optimization
-            optimizePathOrder(paths) {
-                if (paths.length <= 1) return paths;
+            generate(imgData, width, height) {
+                const res = this.cfg.resolution;
+                this.imgHeightMM = this.cfg.targetWidth * (height / width);
                 
-                const optimized = [];
-                const remaining = [...paths];
-                let current = remaining.shift(); // Start with first path
-                optimized.push(current);
-                
-                while (remaining.length > 0) {
-                    const currentEnd = current[current.length - 1];
-                    let nearestIdx = 0;
-                    let minDist = Infinity;
-                    let shouldReverse = false;
-                    
-                    // Find nearest path (check both start and end points)
-                    remaining.forEach((path, idx) => {
-                        const distToStart = Math.hypot(
-                            currentEnd[1] - path[0][1],
-                            currentEnd[0] - path[0][0]
-                        );
-                        const distToEnd = Math.hypot(
-                            currentEnd[1] - path[path.length - 1][1],
-                            currentEnd[0] - path[path.length - 1][0]
-                        );
-                        
-                        if (distToStart < minDist) {
-                            minDist = distToStart;
-                            nearestIdx = idx;
-                            shouldReverse = false;
-                        }
-                        if (distToEnd < minDist) {
-                            minDist = distToEnd;
-                            nearestIdx = idx;
-                            shouldReverse = true;
-                        }
-                    });
-                    
-                    current = remaining.splice(nearestIdx, 1)[0];
-                    if (shouldReverse) {
-                        current = current.slice().reverse();
-                    }
-                    optimized.push(current);
+                if (this.cfg.infillType === 'concentric') {
+                    this.paths = this.generateConcentric(imgData, width, height, res);
+                } else {
+                    this.paths = this.generateLinear(imgData, width, height, res);
                 }
                 
-                return optimized;
-            }
-            
-            setMachineSpeed(speedType = 'travel') {
-                const c = this.cfg;
-                const f = speedType === 'travel' ? c.feed : c.feedPaint;
-                const accel = speedType === 'travel' ? c.accelTravel : c.accelPaint;
-                this.gcode.push("M400");
-                this.gcode.push(`M204 P${accel} T${accel}`);
-                this.gcode.push(`M203 X${f} Y${f} Z${f}`);
-                this.gcode.push(`G0 F${f}`);
-            }
-            
-            performDipAndTravel(targetX, targetY) {
-                const c = this.cfg;
+                this.paths = this.optimizePaths(this.paths);
                 
-                this.setMachineSpeed('travel');
-                const jX = this.randomRange(-c.dipJitter, c.dipJitter);
-                const jY = this.randomRange(-c.dipJitter, c.dipJitter);
-                const activeX = c.dipX + jX;
-                const activeY = c.dipY + jY;
-                
-                // Diagonal entry at z_high
-                this.gcode.push(`G0 X${activeX.toFixed(3)} Y${activeY.toFixed(3)} Z${c.zHigh}`);
-                
-                // Spiral
-                this.setMachineSpeed('paint');
-                this.gcode.push(`G1 Z${c.dipZ}`);
-                const direction = (this.dipCount % 2 === 0) ? 1 : -1;
-                this.dipCount++;
-                
-                let theta = 0;
-                const maxTheta = 2.5 * Math.PI;
-                while (theta <= maxTheta) {
-                    const r = (theta / maxTheta) * c.dipSpiralR;
-                    this.gcode.push(`G1 X${(activeX + r * Math.cos(theta * direction)).toFixed(3)} Y${(activeY + r * Math.sin(theta * direction)).toFixed(3)}`);
-                    theta += 0.1;
+                if (this.cfg.mode === 'plot') {
+                    return this.generatePlotGCode();
+                } else {
+                    return this.generatePaintGCode();
                 }
-                this.gcode.push("G4 P300");
-                
-                // Exit - lift to z_high first
-                this.setMachineSpeed('travel');
-                this.gcode.push(`G0 Z${c.zHigh}`);
-                
-                const angle = Math.atan2(targetY - c.dipY, targetX - c.dipX);
-                // Wipe at z_high
-                this.gcode.push(`G0 X${(c.dipX + c.wipeR * Math.cos(angle)).toFixed(3)} Y${(c.dipY + c.wipeR * Math.sin(angle)).toFixed(3)} Z${c.zHigh}`);
-                
-                // Diagonal descent to target
-                this.gcode.push(`G0 X${targetX.toFixed(3)} Y${targetY.toFixed(3)} Z${c.zLow}`);
-                
-                this.distSinceDip = 0;
-                this.currentMaxDist = this.randomRange(c.minDist, c.maxDist);
-                this.updatePos(targetX, targetY);
             }
             
-            generateLinearSegments(imgData, width, height, res) {
+            // Helper to get Final Coordinates (Flipped Y + Offsets)
+            getRealCoords(x, y) {
+                return [
+                    x + this.cfg.xOff, 
+                    (this.imgHeightMM - y) + this.cfg.yOff
+                ];
+            }
+            
+            generateLinear(imgData, width, height, res) {
                 const c = this.cfg;
-                const targetWMm = c.targetWidth;
-                const targetHMm = targetWMm * (height / width);
-                const angleRad = c.infillAngle * Math.PI / 180;
-                const cosA = Math.cos(angleRad);
-                const sinA = Math.sin(angleRad);
-                const stepMm = c.brushW * (1 - c.overlap);
-                const diag = Math.hypot(targetWMm, targetHMm);
-                const segments = [];
+                const targetW = c.targetWidth;
+                const targetH = this.imgHeightMM;
+                const angle = c.infillAngle * Math.PI / 180;
+                const step = c.brushW * (1 - c.overlap);
+                const diag = Math.hypot(targetW, targetH);
+                const paths = [];
                 
-                const steps = Math.floor(diag / stepMm);
-                for (let i = -steps; i < steps; i++) {
-                    const h = i * stepMm;
+                const numLines = Math.ceil(diag / step);
+                
+                for (let i = -numLines; i <= numLines; i++) {
+                    const offset = i * step;
                     let path = [];
                     
-                    const dSteps = Math.floor(diag * res);
-                    for (let j = -dSteps; j < dSteps; j++) {
-                        const d = j / res;
-                        const cx = targetWMm / 2;
-                        const cy = targetHMm / 2;
-                        const rx = (d - cx) * cosA - (h - cy) * sinA + cx;
-                        const ry = (d - cx) * sinA + (h - cy) * cosA + cy;
-                        const px = Math.floor(rx * res);
-                        const py = Math.floor(ry * res);
+                    for (let d = -diag; d <= diag; d += 1/res) {
+                        const cx = targetW / 2;
+                        const cy = targetH / 2;
+                        
+                        const x = (d - cx) * Math.cos(angle) - (offset - cy) * Math.sin(angle) + cx;
+                        const y = (d - cx) * Math.sin(angle) + (offset - cy) * Math.cos(angle) + cy;
+                        
+                        const px = Math.floor(x * res);
+                        const py = Math.floor(y * res);
                         
                         if (px >= 0 && px < width && py >= 0 && py < height) {
                             const idx = (py * width + px) * 4;
                             if (imgData.data[idx] < 140) {
-                                path.push([ry + c.yOff, rx + c.xOff]);
+                                // Store Image Space Coords (no offset yet)
+                                path.push([y, x]);
                             } else {
-                                if (path.length > 1) segments.push(path);
+                                if (path.length > 2) paths.push(path);
                                 path = [];
                             }
                         } else {
-                            if (path.length > 1) segments.push(path);
+                            if (path.length > 2) paths.push(path);
                             path = [];
                         }
                     }
-                    if (path.length > 1) segments.push(path);
-                }
-                
-                return segments;
-            }
-            
-            generateConcentricPaths(imgData, width, height, res) {
-                const c = this.cfg;
-                // Simple concentric approximation - convert to binary and trace contours
-                const binary = new Array(height);
-                for (let y = 0; y < height; y++) {
-                    binary[y] = new Array(width);
-                    for (let x = 0; x < width; x++) {
-                        const idx = (y * width + x) * 4;
-                        binary[y][x] = imgData.data[idx] < 140 ? 1 : 0;
-                    }
-                }
-                
-                const paths = [];
-                const stepPx = (c.brushW * (1 - c.overlap)) * res;
-                
-                // Simplified contour following
-                const processed = new Array(height).fill(0).map(() => new Array(width).fill(false));
-                
-                for (let offset = 0; offset < Math.min(width, height) / 2; offset += stepPx) {
-                    const path = [];
-                    const margin = Math.floor(offset);
-                    
-                    // Trace perimeter at this offset
-                    for (let y = margin; y < height - margin; y++) {
-                        for (let x = margin; x < width - margin; x++) {
-                            if (binary[y][x] === 1 && !processed[y][x]) {
-                                // Check if on edge
-                                const isEdge = (x === margin || x === width - margin - 1 || 
-                                              y === margin || y === height - margin - 1 ||
-                                              (x > 0 && binary[y][x-1] === 0) ||
-                                              (x < width-1 && binary[y][x+1] === 0) ||
-                                              (y > 0 && binary[y-1][x] === 0) ||
-                                              (y < height-1 && binary[y+1][x] === 0));
-                                
-                                if (isEdge) {
-                                    path.push([y / res + c.yOff, x / res + c.xOff]);
-                                    processed[y][x] = true;
-                                }
-                            }
-                        }
-                    }
-                    
-                    if (path.length > 5) paths.push(path);
+                    if (path.length > 2) paths.push(path);
                 }
                 
                 return paths;
             }
             
-            generate(imgData, width, height) {
+            generateConcentric(imgData, width, height, res) {
                 const c = this.cfg;
-                const res = 2.0;
                 
-                // Generate paths
-                if (c.infillType === 'concentric') {
-                    this.paths = this.generateConcentricPaths(imgData, width, height, res);
-                } else {
-                    this.paths = this.generateLinearSegments(imgData, width, height, res);
+                // Convert to binary flat array for performance
+                const len = width * height;
+                const binary = new Uint8Array(len);
+                for (let i = 0; i < len; i++) {
+                    binary[i] = imgData.data[i * 4] < 140 ? 1 : 0;
                 }
                 
-                this.gcode = ["G90", "G21"];
-                if (this.paths.length === 0) return "M2";
-                
-                // Optimize path order for both modes
-                this.paths = this.optimizePathOrder(this.paths);
-                
-                // PLOT MODE - no dipping, just pen up/down
-                if (this.mode === 'plot') {
-                    this.setMachineSpeed('travel');
-                    this.gcode.push(`G0 Z${c.zHigh}`);
+                const paths = [];
+                const erosionStep = Math.max(1, Math.round(c.brushW * (1 - c.overlap) * res));
+                let currentBinary = binary;
+                let layer = 0;
+
+                // Loop to create concentric rings
+                while (layer < 500) { // Safety limit
+                    // 1. Find all edge pixels
+                    const edgeData = this.findEdges(currentBinary, width, height);
+                    if (edgeData.count === 0) break;
+
+                    // 2. Trace distinct loops
+                    const loops = this.traceLoops(edgeData, width, height);
                     
-                    for (const path of this.paths) {
-                        // Move to start of path (pen up)
-                        this.setMachineSpeed('travel');
-                        this.gcode.push(`G0 X${path[0][1].toFixed(3)} Y${path[0][0].toFixed(3)} Z${c.zLow}`);
-                        this.updatePos(path[0][1], path[0][0]);
+                    // 3. Convert loops to physical coordinates (Image Space)
+                    for (const loop of loops) {
+                        if (loop.length < 3) continue;
                         
-                        // Lower pen and draw
-                        this.setMachineSpeed('paint');
-                        this.gcode.push(`G1 Z${c.zPaint.toFixed(3)}`);
-                        
-                        for (let i = 1; i < path.length; i++) {
-                            const px = path[i][1];
-                            const py = path[i][0];
-                            this.gcode.push(`G1 X${px.toFixed(3)} Y${py.toFixed(3)}`);
-                            this.updatePos(px, py);
+                        const physPath = loop.map(idx => {
+                            const y = Math.floor(idx / width);
+                            const x = idx % width;
+                            return [
+                                y / res, // Raw Y (Top-down)
+                                x / res  // Raw X
+                            ];
+                        });
+                        paths.push(physPath);
+                    }
+
+                    // 4. Erode
+                    currentBinary = this.erode(currentBinary, width, height, erosionStep);
+                    layer++;
+                }
+                
+                return paths;
+            }
+
+            findEdges(binary, width, height) {
+                const map = new Uint8Array(width * height);
+                let count = 0;
+                
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        const idx = y * width + x;
+                        if (binary[idx] === 1) {
+                            let isEdge = false;
+                            if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
+                                isEdge = true;
+                            } else if (
+                                binary[idx - 1] === 0 || 
+                                binary[idx + 1] === 0 || 
+                                binary[idx - width] === 0 || 
+                                binary[idx + width] === 0
+                            ) {
+                                isEdge = true;
+                            }
+                            
+                            if (isEdge) {
+                                map[idx] = 1;
+                                count++;
+                            }
                         }
+                    }
+                }
+                return { map, count };
+            }
+
+            traceLoops(edgeData, width, height) {
+                const loops = [];
+                const map = edgeData.map;
+                const visited = new Uint8Array(width * height);
+                
+                const getValidNeighbors = (idx) => {
+                    const cx = idx % width;
+                    const cy = Math.floor(idx / width);
+                    const n = [];
+                    
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            if (dx === 0 && dy === 0) continue;
+                            
+                            const nx = cx + dx;
+                            const ny = cy + dy;
+                            
+                            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                                const nIdx = ny * width + nx;
+                                if (map[nIdx] === 1 && visited[nIdx] === 0) {
+                                    n.push(nIdx);
+                                }
+                            }
+                        }
+                    }
+                    return n;
+                };
+
+                for (let i = 0; i < map.length; i++) {
+                    if (map[i] === 1 && visited[i] === 0) {
+                        const loop = [i];
+                        visited[i] = 1;
+                        let curr = i;
+                        let found = true;
                         
-                        // Lift pen
-                        this.gcode.push(`G0 Z${c.zLow}`);
+                        while (found) {
+                            found = false;
+                            const neighbors = getValidNeighbors(curr);
+                            
+                            if (neighbors.length > 0) {
+                                const next = neighbors[0];
+                                visited[next] = 1;
+                                loop.push(next);
+                                curr = next;
+                                found = true;
+                            }
+                        }
+                        loops.push(loop);
+                    }
+                }
+                return loops;
+            }
+            
+            erode(binary, width, height, amount) {
+                const result = new Uint8Array(width * height);
+                
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        const idx = y * width + x;
+                        if (binary[idx] === 1) {
+                            let keep = true;
+                            checkLoop:
+                            for (let dy = -amount; dy <= amount; dy++) {
+                                for (let dx = -amount; dx <= amount; dx++) {
+                                    const ny = y + dy;
+                                    const nx = x + dx;
+                                    
+                                    if (ny < 0 || ny >= height || nx < 0 || nx >= width) {
+                                        keep = false;
+                                        break checkLoop;
+                                    }
+                                    if (binary[ny * width + nx] === 0) {
+                                        keep = false;
+                                        break checkLoop;
+                                    }
+                                }
+                            }
+                            if (keep) result[idx] = 1;
+                        }
+                    }
+                }
+                return result;
+            }
+            
+            optimizePaths(paths) {
+                if (paths.length <= 1) return paths;
+                
+                const optimized = [paths[0]];
+                const remaining = paths.slice(1);
+                
+                while (remaining.length > 0) {
+                    const lastPath = optimized[optimized.length - 1];
+                    const lastPt = lastPath[lastPath.length - 1];
+                    
+                    let minDist = Infinity;
+                    let minIdx = 0;
+                    let reverseNext = false;
+                    
+                    for (let i = 0; i < remaining.length; i++) {
+                        const startPt = remaining[i][0];
+                        const endPt = remaining[i][remaining[i].length - 1];
+                        
+                        const dStart = Math.hypot(startPt[0] - lastPt[0], startPt[1] - lastPt[1]);
+                        const dEnd = Math.hypot(endPt[0] - lastPt[0], endPt[1] - lastPt[1]);
+                        
+                        if (dStart < minDist) {
+                            minDist = dStart;
+                            minIdx = i;
+                            reverseNext = false;
+                        }
+                        if (dEnd < minDist) {
+                            minDist = dEnd;
+                            minIdx = i;
+                            reverseNext = true;
+                        }
                     }
                     
-                    this.gcode.push("M2");
-                    return this.gcode.join('\n');
+                    const nextPath = remaining[minIdx];
+                    if (reverseNext) nextPath.reverse();
+                    
+                    optimized.push(nextPath);
+                    remaining.splice(minIdx, 1);
                 }
                 
-                // PAINT MODE - with dipping (now optimized!)
-                this.setMachineSpeed('travel');
-                this.gcode.push(`G0 Z${c.zHigh}`);
-                this.performDipAndTravel(this.paths[0][0][1], this.paths[0][0][0]);
+                return optimized;
+            }
+            
+            generatePlotGCode() {
+                const c = this.cfg;
+                this.gcode = ["G21", "G90", "G0 Z10"];
+                this.setSpeed('travel');
                 
-                // Process all paths
                 for (const path of this.paths) {
-                    const dist = Math.hypot(this.currentPos[0] - path[0][1], this.currentPos[1] - path[0][0]);
+                    if (path.length === 0) continue;
+                    
+                    // Apply offsets and Flip Y
+                    const [sx, sy] = this.getRealCoords(path[0][1], path[0][0]);
+                    
+                    this.gcode.push(`G0 X${sx.toFixed(3)} Y${sy.toFixed(3)}`);
+                    this.gcode.push(`G1 Z${c.zPaint.toFixed(3)}`);
+                    
+                    for (let i = 1; i < path.length; i++) {
+                        const [px, py] = this.getRealCoords(path[i][1], path[i][0]);
+                        this.gcode.push(`G1 X${px.toFixed(3)} Y${py.toFixed(3)}`);
+                    }
+                    
+                    this.gcode.push(`G0 Z${c.zLow}`);
+                }
+                
+                this.gcode.push("M2");
+                return this.gcode.join('\n');
+            }
+            
+            generatePaintGCode() {
+                const c = this.cfg;
+                this.gcode = ["G21", "G90"];
+                this.currentMaxDist = this.randomRange(c.minDist, c.maxDist);
+                
+                this.setSpeed('travel');
+                this.gcode.push(`G0 Z${c.zHigh}`);
+                
+                if (this.paths.length > 0) {
+                   const [tx, ty] = this.getRealCoords(this.paths[0][0][1], this.paths[0][0][0]);
+                   this.dip(tx, ty);
+                }
+                
+                for (const path of this.paths) {
+                    if (path.length === 0) continue;
+
+                    const [sx, sy] = this.getRealCoords(path[0][1], path[0][0]);
+                    
+                    const dist = Math.hypot(
+                        this.currentPos[0] - sx,
+                        this.currentPos[1] - sy
+                    );
+                    
                     if (dist > 0.5) {
-                        this.setMachineSpeed('travel');
-                        this.gcode.push(`G0 X${path[0][1].toFixed(3)} Y${path[0][0].toFixed(3)} Z${c.zLow}`);
-                        this.updatePos(path[0][1], path[0][0]);
+                        this.setSpeed('travel');
+                        this.gcode.push(`G0 X${sx.toFixed(3)} Y${sy.toFixed(3)} Z${c.zLow}`);
+                        this.updatePos(sx, sy);
                     }
                     
                     for (let i = 1; i < path.length; i++) {
-                        const px = path[i][1];
-                        const py = path[i][0];
+                        const [px, py] = this.getRealCoords(path[i][1], path[i][0]);
                         const segLen = Math.hypot(px - this.currentPos[0], py - this.currentPos[1]);
                         
-                        if ((this.distSinceDip + segLen) > this.currentMaxDist) {
-                            this.performDipAndTravel(px, py);
+                        if (this.distSinceDip + segLen > this.currentMaxDist) {
+                            this.dip(px, py);
                         }
                         
-                        this.setMachineSpeed('paint');
+                        this.setSpeed('paint');
                         this.gcode.push(`G1 Z${c.zPaint.toFixed(3)}`);
                         this.gcode.push(`G1 X${px.toFixed(3)} Y${py.toFixed(3)}`);
                         this.distSinceDip += segLen;
@@ -933,94 +944,117 @@
                 this.gcode.push("M2");
                 return this.gcode.join('\n');
             }
+            
+            setSpeed(type) {
+                const c = this.cfg;
+                const f = type === 'travel' ? c.feed : c.feedPaint;
+                const a = type === 'travel' ? c.accelTravel : c.accelPaint;
+                this.gcode.push("M400", `M204 P${a} T${a}`, `M203 X${f} Y${f} Z${f}`, `G0 F${f}`);
+            }
+            
+            dip(tx, ty) {
+                const c = this.cfg;
+                this.setSpeed('travel');
+                
+                const jx = this.randomRange(-c.dipJitter, c.dipJitter);
+                const jy = this.randomRange(-c.dipJitter, c.dipJitter);
+                const dx = c.dipX + jx;
+                const dy = c.dipY + jy;
+                
+                this.gcode.push(`G0 X${dx.toFixed(3)} Y${dy.toFixed(3)} Z${c.zHigh}`);
+                
+                this.setSpeed('paint');
+                this.gcode.push(`G1 Z${c.dipZ}`);
+                
+                const dir = (this.dipCount++ % 2) ? 1 : -1;
+                for (let t = 0; t <= 2.5 * Math.PI; t += 0.1) {
+                    const r = (t / (2.5 * Math.PI)) * c.dipSpiralR;
+                    this.gcode.push(`G1 X${(dx + r * Math.cos(t * dir)).toFixed(3)} Y${(dy + r * Math.sin(t * dir)).toFixed(3)}`);
+                }
+                this.gcode.push("G4 P300");
+                
+                this.setSpeed('travel');
+                this.gcode.push(`G0 Z${c.zHigh}`);
+                
+                const angle = Math.atan2(ty - c.dipY, tx - c.dipX);
+                this.gcode.push(`G0 X${(c.dipX + c.wipeR * Math.cos(angle)).toFixed(3)} Y${(c.dipY + c.wipeR * Math.sin(angle)).toFixed(3)} Z${c.zHigh}`);
+                this.gcode.push(`G0 X${tx.toFixed(3)} Y${ty.toFixed(3)} Z${c.zLow}`);
+                
+                this.distSinceDip = 0;
+                this.currentMaxDist = this.randomRange(c.minDist, c.maxDist);
+                this.updatePos(tx, ty);
+            }
         }
         
-        // G-code visualization
-        function visualizeGCode(gcode, paths, mode) {
+        // Visualization
+        function visualize(gcode, paths, mode) {
             const canvas = document.getElementById('gcodeCanvas');
             const ctx = canvas.getContext('2d');
             
-            // Set canvas size
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
+            const container = document.getElementById('previewContainer');
+            canvas.width = container.offsetWidth - 40;
+            canvas.height = 600;
             
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
             if (!paths || paths.length === 0) return;
             
-            // Find bounds
             let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-            paths.forEach(path => {
-                path.forEach(point => {
-                    minX = Math.min(minX, point[1]);
-                    minY = Math.min(minY, point[0]);
-                    maxX = Math.max(maxX, point[1]);
-                    maxY = Math.max(maxY, point[0]);
-                });
-            });
+            paths.forEach(p => p.forEach(pt => {
+                minX = Math.min(minX, pt[1]);
+                minY = Math.min(minY, pt[0]);
+                maxX = Math.max(maxX, pt[1]);
+                maxY = Math.max(maxY, pt[0]);
+            }));
             
             const margin = 40;
-            const scaleX = (canvas.width - margin * 2) / (maxX - minX);
-            const scaleY = (canvas.height - margin * 2) / (maxY - minY);
-            const scale = Math.min(scaleX, scaleY);
+            // Prevent division by zero if single point
+            const w = maxX - minX || 1;
+            const h = maxY - minY || 1;
             
-            const offsetX = margin - minX * scale + (canvas.width - margin * 2 - (maxX - minX) * scale) / 2;
-            const offsetY = margin - minY * scale + (canvas.height - margin * 2 - (maxY - minY) * scale) / 2;
+            const sx = (canvas.width - margin * 2) / w;
+            const sy = (canvas.height - margin * 2) / h;
+            const scale = Math.min(sx, sy);
             
-            // Draw travel moves (show optimization for both modes)
-            ctx.strokeStyle = mode === 'plot' ? 'rgba(255, 46, 151, 0.3)' : 'rgba(0, 212, 255, 0.2)';
+            const ox = margin - minX * scale + (canvas.width - margin * 2 - w * scale) / 2;
+            const oy = margin - minY * scale + (canvas.height - margin * 2 - h * scale) / 2;
+            
+            // Travel moves
+            ctx.strokeStyle = 'rgba(0, 212, 255, 0.2)';
             ctx.lineWidth = 1;
             ctx.setLineDash([5, 5]);
-            
             for (let i = 0; i < paths.length - 1; i++) {
-                const endPoint = paths[i][paths[i].length - 1];
-                const startPoint = paths[i + 1][0];
-                
-                const x1 = endPoint[1] * scale + offsetX;
-                const y1 = endPoint[0] * scale + offsetY;
-                const x2 = startPoint[1] * scale + offsetX;
-                const y2 = startPoint[0] * scale + offsetY;
-                
+                const e = paths[i][paths[i].length - 1];
+                const s = paths[i + 1][0];
                 ctx.beginPath();
-                ctx.moveTo(x1, y1);
-                ctx.lineTo(x2, y2);
+                ctx.moveTo(e[1] * scale + ox, e[0] * scale + oy);
+                ctx.lineTo(s[1] * scale + ox, s[0] * scale + oy);
                 ctx.stroke();
             }
             ctx.setLineDash([]);
             
-            // Draw paths
-            paths.forEach((path, pathIdx) => {
+            // Paths
+            paths.forEach((path, i) => {
                 ctx.beginPath();
-                const hue = (pathIdx / paths.length) * 360;
-                ctx.strokeStyle = `hsl(${hue}, 80%, 60%)`;
+                ctx.strokeStyle = `hsl(${(i / paths.length) * 360}, 80%, 60%)`;
                 ctx.lineWidth = 2;
                 
-                path.forEach((point, idx) => {
-                    const x = point[1] * scale + offsetX;
-                    const y = point[0] * scale + offsetY;
-                    
-                    if (idx === 0) {
-                        ctx.moveTo(x, y);
-                    } else {
-                        ctx.lineTo(x, y);
-                    }
+                path.forEach((pt, j) => {
+                    const x = pt[1] * scale + ox;
+                    const y = pt[0] * scale + oy;
+                    j === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
                 });
-                
                 ctx.stroke();
             });
             
-            // Update stats
-            const lines = gcode.split('\n').length;
-            const dips = (gcode.match(/G4 P300/g) || []).length;
-            
-            document.getElementById('statLines').textContent = lines;
+            document.getElementById('statLines').textContent = gcode.split('\n').length;
             document.getElementById('statPaths').textContent = paths.length;
-            document.getElementById('statDips').textContent = mode === 'plot' ? 'N/A' : dips;
-            document.getElementById('statTime').textContent = Math.ceil(lines / 20) + ' min';
+            document.getElementById('statDips').textContent = mode === 'plot' ? 'N/A' : (gcode.match(/G4 P300/g) || []).length;
+            document.getElementById('statTime').textContent = Math.ceil(gcode.split('\n').length / 20) + ' min';
             document.getElementById('statsOverlay').style.display = 'block';
         }
         
-        // Generate button handler
+        // Generate
         document.getElementById('generateBtn').addEventListener('click', async function() {
             if (!currentImage) {
                 alert('Please upload an image first');
@@ -1028,16 +1062,14 @@
             }
             
             document.getElementById('loading').classList.remove('hidden');
-            
-            // Small delay to show loading
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(r => setTimeout(r, 100));
             
             try {
-                // Get configuration
                 const config = {
                     mode: document.getElementById('mode').value,
                     infillType: document.getElementById('infillType').value,
                     infillAngle: parseFloat(document.getElementById('infillAngle').value),
+                    resolution: parseFloat(document.getElementById('resolution').value),
                     targetWidth: parseFloat(document.getElementById('targetWidth').value),
                     brushW: parseFloat(document.getElementById('brushW').value),
                     overlap: parseFloat(document.getElementById('overlap').value),
@@ -1060,42 +1092,37 @@
                     accelPaint: parseFloat(document.getElementById('accelPaint').value)
                 };
                 
-                // Process image
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
                 
-                const res = 2.0;
-                const targetWidth = config.targetWidth * res;
-                const targetHeight = targetWidth * (currentImage.height / currentImage.width);
+                const w = Math.floor(config.targetWidth * config.resolution);
+                const h = Math.floor(w * (currentImage.height / currentImage.width));
                 
-                canvas.width = targetWidth;
-                canvas.height = targetHeight;
-                ctx.drawImage(currentImage, 0, 0, targetWidth, targetHeight);
+                canvas.width = w;
+                canvas.height = h;
+                ctx.drawImage(currentImage, 0, 0, w, h);
                 
-                const imgData = ctx.getImageData(0, 0, targetWidth, targetHeight);
+                const imgData = ctx.getImageData(0, 0, w, h);
                 
-                // Generate G-code
-                const painter = new SafeRasterPainter(config);
-                generatedGCode = painter.generate(imgData, targetWidth, targetHeight);
+                const painter = new GCodePainter(config);
+                generatedGCode = painter.generate(imgData, w, h);
                 
-                // Visualize
-                visualizeGCode(generatedGCode, painter.paths, config.mode);
+                document.getElementById('previewCanvas').style.display = 'none';
+                document.getElementById('gcodeCanvas').style.display = 'block';
+                visualize(generatedGCode, painter.paths, config.mode);
                 
-                // Enable download
                 document.getElementById('downloadBtn').disabled = false;
-                
             } catch (error) {
-                console.error('Generation error:', error);
-                alert('Error generating G-code: ' + error.message);
+                console.error('Error:', error);
+                alert('Error: ' + error.message);
             } finally {
                 document.getElementById('loading').classList.add('hidden');
             }
         });
         
-        // Download button handler
+        // Download
         document.getElementById('downloadBtn').addEventListener('click', function() {
             if (!generatedGCode) return;
-            
             const blob = new Blob([generatedGCode], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
