@@ -19,19 +19,25 @@ class SafeRasterPainter:
         self.current_pos = (x, y)
 
     def _set_machine_speed(self, speed_type='travel'):
+        """Sets Feedrate, Acceleration (M204), and Max Feedrate (M203)"""
         c = self.cfg
-        f = c['feed'] if speed_type == 'travel' else c['feed_paint']
-        accel = c.get('accel_travel', 200) if speed_type == 'travel' else c.get('accel_paint', 20)
-        self.gcode.append("M400") 
+        if speed_type == 'travel':
+            f = c['feed']
+            accel = c.get('accel_travel', 200)
+        else: # paint
+            f = c['feed_paint']
+            accel = c.get('accel_paint', 20)
+        
+        self.gcode.append("M400") # Wait for moves to finish before changing acceleration
         self.gcode.append(f"M204 P{accel} T{accel}") 
         self.gcode.append(f"M203 X{f} Y{f} Z{f}") 
         self.gcode.append(f"G0 F{f}") 
 
     def _perform_dip_and_travel(self, target_x, target_y):
         c = self.cfg
-        self.gcode.append(f"\n; --- Namakanje (Wipe-on-Exit Logic) ---")
+        self.gcode.append(f"\n; --- Namakanje (Accels + Wipe-on-Exit) ---")
         
-        # Jitter and setup
+        # Jitter for petri longevity
         j_x = random.uniform(-c['dip_jitter'], c['dip_jitter'])
         j_y = random.uniform(-c['dip_jitter'], c['dip_jitter'])
         active_x, active_y = c['dip_x'] + j_x, c['dip_y'] + j_y
@@ -49,11 +55,12 @@ class SafeRasterPainter:
         else:
             edge_x_in, edge_y_in = c['dip_x'] + c['wipe_r'], c['dip_y']
         
+        # Travel to edge at safe high Z, then move to center
         self.gcode.append(f"G0 X{edge_x_in:.3f} Y{edge_y_in:.3f} Z{c['z_high']}")
         self.gcode.append(f"G0 X{active_x:.3f} Y{active_y:.3f}")
 
         # --- 2. MIXING ---
-        self._set_machine_speed('paint')
+        self._set_machine_speed('paint') # Use paint acceleration for mixing
         self.gcode.append(f"G1 Z{c['dip_z']:.3f} F800")
         direction = 1 if (self.dip_count % 2 == 0) else -1
         self.dip_count += 1
@@ -64,10 +71,9 @@ class SafeRasterPainter:
             theta += 0.1
         self.gcode.append("G4 P300") 
 
-        # --- 3. WIPE-ON-EXIT LOGIC (FROM DOTS9.PY) ---
-        self._set_machine_speed('travel')
+        # --- 3. WIPE-ON-EXIT LOGIC ---
+        self._set_machine_speed('travel') # Switch back to travel acceleration
         
-        # Calculate exit point toward the painting target
         dx_out = target_x - c['dip_x']
         dy_out = target_y - c['dip_y']
         dist_out = math.hypot(dx_out, dy_out)
@@ -79,21 +85,16 @@ class SafeRasterPainter:
         else:
             wipe_edge_x, wipe_edge_y = c['dip_x'] + c['wipe_r'], c['dip_y']
         
-        # A: Lift to LOW wipe height while still inside the dish
-        self.gcode.append(f"G0 Z{c['z_wipe_exit']:.3f}")
-        
-        # B: Travel to the RIM at LOW height to scrape excess paint
-        self.gcode.append(f"G0 X{wipe_edge_x:.3f} Y{wipe_edge_y:.3f}")
-        
-        # C: High climb to clear the Petri dish, then drop to painting height
-        self.gcode.append(f"G0 Z{c['z_high']:.3f}")
-        self.gcode.append(f"G0 X{target_x:.3f} Y{target_y:.3f} Z{c['z_low']:.3f}")
+        # Wipe sequence
+        self.gcode.append(f"G0 Z{c['z_wipe_exit']:.3f}") # Drop to wipe height
+        self.gcode.append(f"G0 X{wipe_edge_x:.3f} Y{wipe_edge_y:.3f}") # Move to rim
+        self.gcode.append(f"G0 Z{c['z_high']:.3f}") # Lift high to clear
+        self.gcode.append(f"G0 X{target_x:.3f} Y{target_y:.3f} Z{c['z_low']:.3f}") # Move to target start
         
         self.dist_since_dip = 0
         self.current_max_dist = random.uniform(c.get('min_dist', 120.0), c.get('max_dist', 250.0))
         self._update_pos(target_x, target_y)
 
-    # ... [Rest of Path Optimization and Raster logic remains same as var8] ...
     def _optimize_path_order(self, paths):
         if len(paths) <= 1: return paths
         optimized = []; remaining = list(paths); current = remaining.pop(0); optimized.append(current)
@@ -147,6 +148,8 @@ class SafeRasterPainter:
         self.gcode = ["G90", "G21"]
         if not paths: return "M2"
         paths = self._optimize_path_order(paths)
+        
+        # Initial Safe Move
         self._set_machine_speed('travel')
         self.gcode.append(f"G0 Z{c['z_high']}")
         self._perform_dip_and_travel(paths[0][0][1], paths[0][0][0])
@@ -158,14 +161,20 @@ class SafeRasterPainter:
             for i in range(1, len(path)):
                 px, py = path[i][1], path[i][0]
                 seg_len = math.hypot(px - self.current_pos[0], py - self.current_pos[1])
+                
+                # Check for dip
                 if (self.dist_since_dip + seg_len) > self.current_max_dist:
                     self._perform_dip_and_travel(px, py)
+                
                 self._set_machine_speed('paint')
                 self.gcode.append(f"G1 Z{c['z_paint']:.3f}")
                 self.gcode.append(f"G1 X{px:.3f} Y{py:.3f}")
                 self.dist_since_dip += seg_len
                 self._update_pos(px, py)
+            
+            self._set_machine_speed('travel')
             self.gcode.append(f"G0 Z{c['z_low']}")
+            
         self.gcode.append("M2")
         return "\n".join(self.gcode)
 
@@ -175,7 +184,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     config = {
-        'infill_type':  'lines', # 'concentric' or 'lines'
+        'infill_type':  'lines',
         'infill_angle': 0.0,
         'target_width': 280.0,
         'brush_w':      2.5, 
@@ -184,8 +193,8 @@ if __name__ == "__main__":
         'max_dist':     550.0,
         'z_paint':      0.0,
         'z_low':        1.6,
-        'z_high':       36.0,    # Safety height
-        'z_wipe_exit':  13.0,    # <--- NEW: Low wipe height from Dots9.py
+        'z_high':       36.0,
+        'z_wipe_exit':  13.0,
         'x_off':        16.0,
         'y_off':        78.0,
         'dip_x':        91.0,
@@ -196,6 +205,8 @@ if __name__ == "__main__":
         'wipe_r':       27.0,
         'feed':         1500,
         'feed_paint':   600,
+        'accel_travel': 200,    # Pospeševanje za travel (mm/s²)
+        'accel_paint':  20,     # Pospeševanje za barvanje (mm/s²)
     }
 
     painter = SafeRasterPainter(config)
