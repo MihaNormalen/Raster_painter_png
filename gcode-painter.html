@@ -718,8 +718,8 @@
                 dip_z: 0.3,
                 dip_jitter: 7.0,
                 dip_spiral_loops: 1.0,
-                dip_spiral_r: 10.0,
-                wipe_r: 15.0,
+                dip_spiral_r: 13.0,
+                wipe_r: 18.0,
                 feed: 1500,
                 feed_paint: 400,
                 backlash_x: 0.5,
@@ -1168,6 +1168,33 @@
                                         step="0.1"
                                     />
                                 </div>
+                                <div className="control-item">
+                                    <label>Spiral Loops</label>
+                                    <input
+                                        type="number"
+                                        value={config.dip_spiral_loops}
+                                        onChange={(e) => updateConfig('dip_spiral_loops', e.target.value)}
+                                        step="0.1"
+                                    />
+                                </div>
+                                <div className="control-item">
+                                    <label>Spiral Radius (mm)</label>
+                                    <input
+                                        type="number"
+                                        value={config.dip_spiral_r}
+                                        onChange={(e) => updateConfig('dip_spiral_r', e.target.value)}
+                                        step="0.1"
+                                    />
+                                </div>
+                                <div className="control-item">
+                                    <label>Wipe Radius (mm)</label>
+                                    <input
+                                        type="number"
+                                        value={config.wipe_r}
+                                        onChange={(e) => updateConfig('wipe_r', e.target.value)}
+                                        step="0.1"
+                                    />
+                                </div>
                             </div>
                             
                             <div className="control-group">
@@ -1196,6 +1223,15 @@
                                         type="number"
                                         value={config.z_high}
                                         onChange={(e) => updateConfig('z_high', e.target.value)}
+                                        step="0.1"
+                                    />
+                                </div>
+                                <div className="control-item">
+                                    <label>Wipe Exit Height (mm)</label>
+                                    <input
+                                        type="number"
+                                        value={config.z_wipe_exit}
+                                        onChange={(e) => updateConfig('z_wipe_exit', e.target.value)}
                                         step="0.1"
                                     />
                                 </div>
