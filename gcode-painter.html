@@ -3,24 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bacterial Painter · G-code Generator</title>
+    <title>OpenBrushograph</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Mono:wght@400;700&display=swap');
-        
-        :root {
-            --bg-dark: #0a0e14;
-            --bg-mid: #151922;
-            --bg-light: #1f2430;
-            --accent-cyan: #00d4ff;
-            --accent-pink: #ff2e97;
-            --accent-yellow: #ffd700;
-            --text-bright: #e6edf3;
-            --text-dim: #8b949e;
-            --border: #30363d;
-            --success: #3fb950;
-            --danger: #f85149;
-        }
-        
         * {
             margin: 0;
             padding: 0;
@@ -28,1109 +15,1383 @@
         }
         
         body {
-            font-family: 'Space Mono', monospace;
-            background: var(--bg-dark);
-            color: var(--text-bright);
-            overflow-x: hidden;
-            line-height: 1.6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
         }
         
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: 
-                radial-gradient(circle at 20% 30%, rgba(0, 212, 255, 0.05) 0%, transparent 50%),
-                radial-gradient(circle at 80% 70%, rgba(255, 46, 151, 0.05) 0%, transparent 50%);
-            pointer-events: none;
-            z-index: 0;
-        }
-        
-        .container {
-            position: relative;
-            z-index: 1;
-            max-width: 1800px;
+        .app-container {
+            max-width: 1600px;
             margin: 0 auto;
-            padding: 2rem;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
         }
         
-        header {
+        .header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 30px;
             text-align: center;
-            padding: 3rem 0;
-            border-bottom: 2px solid var(--border);
-            margin-bottom: 3rem;
         }
         
-        h1 {
-            font-size: 3.5rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-pink));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 0.5rem;
-            letter-spacing: -0.02em;
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
         }
         
-        .subtitle {
-            font-family: 'JetBrains Mono', monospace;
-            color: var(--text-dim);
-            font-size: 0.95rem;
-            letter-spacing: 0.05em;
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
         }
         
-        .main-grid {
+        .main-content {
             display: grid;
-            grid-template-columns: 400px 1fr;
-            gap: 2rem;
+            grid-template-columns: 350px 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+            min-height: 600px;
         }
         
         .panel {
-            background: var(--bg-mid);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 2rem;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         
         .panel-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-            margin-bottom: 1.5rem;
-            padding-bottom: 0.75rem;
-            border-bottom: 2px solid var(--accent-cyan);
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #764ba2;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .panel-title::before {
-            content: '▸';
-            color: var(--accent-cyan);
-            font-size: 1.5rem;
+            gap: 10px;
         }
         
         .controls-panel {
-            max-height: calc(100vh - 200px);
             overflow-y: auto;
-            overflow-x: hidden;
-        }
-        
-        .controls-panel::-webkit-scrollbar {
-            width: 8px;
-        }
-        
-        .controls-panel::-webkit-scrollbar-track {
-            background: var(--bg-dark);
-            border-radius: 4px;
-        }
-        
-        .controls-panel::-webkit-scrollbar-thumb {
-            background: var(--accent-cyan);
-            border-radius: 4px;
-        }
-        
-        .control-section {
-            margin-bottom: 2rem;
-            transition: opacity 0.3s ease;
-        }
-        
-        .control-section.disabled {
-            opacity: 0.4;
-            pointer-events: none;
-        }
-        
-        .section-header {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
-            color: var(--accent-pink);
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            margin-bottom: 1rem;
-            font-weight: 600;
+            max-height: calc(100vh - 200px);
         }
         
         .control-group {
-            margin-bottom: 1.25rem;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e0e0;
         }
         
-        label {
-            display: block;
-            font-size: 0.9rem;
-            color: var(--text-dim);
-            margin-bottom: 0.5rem;
-            font-family: 'JetBrains Mono', monospace;
+        .control-group:last-child {
+            border-bottom: none;
         }
         
-        input[type="number"],
-        input[type="file"],
-        select {
-            width: 100%;
-            background: var(--bg-light);
-            border: 1px solid var(--border);
-            color: var(--text-bright);
-            padding: 0.75rem;
-            border-radius: 6px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.9rem;
-            transition: all 0.3s ease;
-        }
-        
-        input[type="number"]:focus,
-        select:focus {
-            outline: none;
-            border-color: var(--accent-cyan);
-            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
-        }
-        
-        input[type="file"] {
-            cursor: pointer;
-            padding: 1rem;
-        }
-        
-        input[type="file"]::file-selector-button {
-            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-pink));
-            border: none;
-            color: var(--bg-dark);
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 600;
-            margin-right: 1rem;
-        }
-        
-        button {
-            width: 100%;
-            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-pink));
-            border: none;
-            color: var(--bg-dark);
-            padding: 1rem 2rem;
-            border-radius: 8px;
-            font-family: 'Space Mono', monospace;
-            font-size: 1rem;
-            font-weight: 700;
-            cursor: pointer;
+        .control-group h3 {
+            font-size: 0.95em;
+            color: #f5576c;
+            margin-bottom: 12px;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-top: 1rem;
+            letter-spacing: 0.5px;
         }
         
-        button:hover:not(:disabled) {
+        .control-item {
+            margin-bottom: 12px;
+        }
+        
+        .control-item label {
+            display: block;
+            font-size: 0.85em;
+            color: #555;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        .control-item input,
+        .control-item select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 0.9em;
+            transition: border-color 0.3s;
+        }
+        
+        .control-item input:focus,
+        .control-item select:focus {
+            outline: none;
+            border-color: #f5576c;
+        }
+        
+        .file-upload {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        .file-upload input[type="file"] {
+            display: none;
+        }
+        
+        .file-upload-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .file-upload-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0, 212, 255, 0.4);
+            box-shadow: 0 6px 12px rgba(245, 87, 108, 0.3);
         }
         
-        button:disabled {
+        .generate-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .generate-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .generate-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
         
-        .preview-panel {
-            position: relative;
-            min-height: 600px;
-        }
-        
-        .preview-container {
+        .download-btn {
             width: 100%;
-            min-height: 400px;
-            background: var(--bg-light);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
+            padding: 12px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: transform 0.2s;
         }
         
-        .placeholder {
-            color: var(--text-dim);
-            font-family: 'JetBrains Mono', monospace;
+        .download-btn:hover {
+            transform: translateY(-2px);
         }
         
-        #previewCanvas,
-        #gcodeCanvas {
-            max-width: 100%;
-            border-radius: 8px;
-            display: none;
+        .preview-canvas {
+            width: 100%;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            background: #f5f5f5;
+            margin-top: 15px;
         }
         
-        .stats-overlay {
-            position: absolute;
-            top: 2rem;
-            right: 2rem;
-            background: rgba(10, 14, 20, 0.9);
-            border: 1px solid var(--accent-cyan);
-            border-radius: 8px;
-            padding: 1rem;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
-            display: none;
-            backdrop-filter: blur(10px);
+        .terminal {
+            background: #1e1e1e;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            padding: 15px;
+            border-radius: 10px;
+            height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
         }
         
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            gap: 1rem;
-            margin-bottom: 0.5rem;
+        .terminal-line {
+            margin-bottom: 5px;
+            line-height: 1.4;
         }
         
-        .stat-label {
-            color: var(--text-dim);
+        .terminal-line.info { color: #00ff00; }
+        .terminal-line.warning { color: #ffaa00; }
+        .terminal-line.error { color: #ff4444; }
+        .terminal-line.success { color: #44ff44; }
+        
+        .gcode-preview {
+            background: #f5f5f5;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75em;
+            padding: 15px;
+            border-radius: 10px;
+            height: 400px;
+            overflow-y: auto;
+            margin-top: 15px;
+            white-space: pre;
+            line-height: 1.3;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .stat-box {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
         }
         
         .stat-value {
-            color: var(--accent-cyan);
-            font-weight: 600;
+            font-size: 1.8em;
+            font-weight: bold;
+            margin-bottom: 5px;
         }
         
-        .loading {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(10, 14, 20, 0.95);
+        .stat-label {
+            font-size: 0.85em;
+            opacity: 0.9;
+        }
+        
+        .image-filename {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 10px;
+            padding: 8px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 10px;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+        
+        .visual-legend {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 15px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        
+        .legend-item {
             display: flex;
             align-items: center;
-            justify-content: center;
-            z-index: 1000;
+            gap: 8px;
+            font-size: 0.85em;
         }
         
-        .hidden {
-            display: none !important;
+        .legend-color {
+            width: 30px;
+            height: 3px;
+            border-radius: 2px;
         }
         
-        .spinner {
-            width: 60px;
-            height: 60px;
-            border: 4px solid var(--border);
-            border-top-color: var(--accent-cyan);
+        .legend-color.paint {
+            background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .legend-color.travel {
+            background: #cccccc;
+        }
+        
+        .legend-color.dip {
+            width: 12px;
+            height: 12px;
             border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        .info-text {
-            font-size: 0.8rem;
-            color: var(--text-dim);
-            margin-top: 0.25rem;
-            font-family: 'JetBrains Mono', monospace;
-        }
-        
-        .highlight {
-            color: var(--accent-yellow);
+            background: #4facfe;
+            border: 2px solid #0077cc;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>BACTERIAL PAINTER</h1>
-            <div class="subtitle">G-CODE GENERATOR FOR PRECISION BIOART</div>
-        </header>
-        
-        <div class="main-grid">
-            <div class="panel controls-panel">
-                <div class="panel-title">Configuration</div>
-                
-                <div class="control-section">
-                    <div class="section-header">Image Input</div>
-                    <div class="control-group">
-                        <label for="imageUpload">Upload Image</label>
-                        <input type="file" id="imageUpload" accept="image/*">
-                        <div class="info-text">Supports PNG, JPG, WebP</div>
-                    </div>
-                </div>
-                
-                <div class="control-section">
-                    <div class="section-header">Generation Mode</div>
-                    <div class="control-group">
-                        <label for="mode">Mode</label>
-                        <select id="mode">
-                            <option value="paint">Paint (with dipping)</option>
-                            <option value="plot">Plot (continuous)</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="control-section">
-                    <div class="section-header">Infill Settings</div>
-                    <div class="control-group">
-                        <label for="infillType">Infill Type</label>
-                        <select id="infillType">
-                            <option value="linear">Linear</option>
-                            <option value="concentric">Concentric</option>
-                        </select>
-                    </div>
-                    <div class="control-group" id="angleGroup">
-                        <label for="infillAngle">Infill Angle (degrees)</label>
-                        <input type="number" id="infillAngle" value="0" step="1" min="-180" max="180">
-                        <div class="info-text">Only for linear infill</div>
-                    </div>
-                    <div class="control-group">
-                        <label for="resolution">Resolution (px/mm) <span class="highlight">★</span></label>
-                        <input type="number" id="resolution" value="2.0" step="0.1" min="0.5" max="10">
-                        <div class="info-text">Higher = more detail</div>
-                    </div>
-                </div>
-                
-                <div class="control-section">
-                    <div class="section-header">Dimensions</div>
-                    <div class="control-group">
-                        <label for="targetWidth">Target Width (mm)</label>
-                        <input type="number" id="targetWidth" value="50" step="1" min="1">
-                    </div>
-                    <div class="control-group">
-                        <label for="brushW">Brush Width (mm)</label>
-                        <input type="number" id="brushW" value="1.0" step="0.1" min="0.1">
-                    </div>
-                    <div class="control-group">
-                        <label for="overlap">Line Overlap (0-1)</label>
-                        <input type="number" id="overlap" value="0.2" step="0.05" min="0" max="0.9">
-                    </div>
-                </div>
-                
-                <div class="control-section" id="dippingSection">
-                    <div class="section-header">Dipping Parameters</div>
-                    <div class="control-group">
-                        <label for="minDist">Min Distance Before Dip (mm)</label>
-                        <input type="number" id="minDist" value="30" step="1" min="1">
-                    </div>
-                    <div class="control-group">
-                        <label for="maxDist">Max Distance Before Dip (mm)</label>
-                        <input type="number" id="maxDist" value="50" step="1" min="1">
-                    </div>
-                </div>
-                
-                <div class="control-section">
-                    <div class="section-header">Z Heights</div>
-                    <div class="control-group">
-                        <label for="zPaint">Paint Height (mm)</label>
-                        <input type="number" id="zPaint" value="0.0" step="0.1">
-                    </div>
-                    <div class="control-group">
-                        <label for="zLow">Low Height (mm)</label>
-                        <input type="number" id="zLow" value="2.0" step="0.1">
-                    </div>
-                    <div class="control-group">
-                        <label for="zHigh">High Height (mm)</label>
-                        <input type="number" id="zHigh" value="10.0" step="0.1">
-                    </div>
-                    <div class="control-group" id="dipZGroup">
-                        <label for="dipZ">Dip Depth (mm)</label>
-                        <input type="number" id="dipZ" value="-5.0" step="0.1">
-                    </div>
-                </div>
-                
-                <div class="control-section">
-                    <div class="section-header">Offsets</div>
-                    <div class="control-group">
-                        <label for="xOff">X Offset (mm)</label>
-                        <input type="number" id="xOff" value="0" step="1">
-                    </div>
-                    <div class="control-group">
-                        <label for="yOff">Y Offset (mm)</label>
-                        <input type="number" id="yOff" value="0" step="1">
-                    </div>
-                </div>
-                
-                <div class="control-section" id="dipStationSection">
-                    <div class="section-header">Dip Station</div>
-                    <div class="control-group">
-                        <label for="dipX">Dip X Position (mm)</label>
-                        <input type="number" id="dipX" value="100" step="1">
-                    </div>
-                    <div class="control-group">
-                        <label for="dipY">Dip Y Position (mm)</label>
-                        <input type="number" id="dipY" value="100" step="1">
-                    </div>
-                    <div class="control-group">
-                        <label for="dipJitter">Dip Jitter (mm)</label>
-                        <input type="number" id="dipJitter" value="2.0" step="0.1" min="0">
-                    </div>
-                    <div class="control-group">
-                        <label for="dipSpiralR">Dip Spiral Radius (mm)</label>
-                        <input type="number" id="dipSpiralR" value="3.0" step="0.1" min="0">
-                    </div>
-                    <div class="control-group">
-                        <label for="wipeR">Wipe Radius (mm)</label>
-                        <input type="number" id="wipeR" value="5.0" step="0.1" min="0">
-                    </div>
-                </div>
-                
-                <div class="control-section">
-                    <div class="section-header">Speed & Acceleration</div>
-                    <div class="control-group">
-                        <label for="feed">Travel Feed Rate (mm/s)</label>
-                        <input type="number" id="feed" value="100" step="10" min="1">
-                    </div>
-                    <div class="control-group">
-                        <label for="feedPaint">Paint Feed Rate (mm/s)</label>
-                        <input type="number" id="feedPaint" value="50" step="5" min="1">
-                    </div>
-                    <div class="control-group">
-                        <label for="accelTravel">Travel Acceleration (mm/s²)</label>
-                        <input type="number" id="accelTravel" value="1000" step="100" min="10">
-                    </div>
-                    <div class="control-group">
-                        <label for="accelPaint">Paint Acceleration (mm/s²)</label>
-                        <input type="number" id="accelPaint" value="500" step="50" min="10">
-                    </div>
-                </div>
-                
-                <button id="generateBtn">Generate G-Code</button>
-                <button id="downloadBtn" disabled>Download G-Code</button>
-            </div>
-            
-            <div class="panel preview-panel">
-                <div class="panel-title">Preview</div>
-                <div class="preview-container" id="previewContainer">
-                    <div class="placeholder" id="placeholder">Upload an image to begin</div>
-                    <canvas id="previewCanvas"></canvas>
-                    <canvas id="gcodeCanvas"></canvas>
-                </div>
-                <div class="stats-overlay" id="statsOverlay">
-                    <div class="stat-row">
-                        <span class="stat-label">G-code Lines:</span>
-                        <span class="stat-value" id="statLines">0</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Paths:</span>
-                        <span class="stat-value" id="statPaths">0</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Dips:</span>
-                        <span class="stat-value" id="statDips">0</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Est. Time:</span>
-                        <span class="stat-value" id="statTime">0 min</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <div id="root"></div>
     
-    <div class="loading hidden" id="loading">
-        <div class="spinner"></div>
-    </div>
-    
-    <script>
-        let currentImage = null;
-        let generatedGCode = '';
+    <script type="text/babel">
+        const { useState, useRef, useEffect } = React;
         
-        // Mode and infill type change handlers
-        function updateUIState() {
-            const isPlotMode = document.getElementById('mode').value === 'plot';
-            const isLinear = document.getElementById('infillType').value === 'linear';
-            
-            document.getElementById('dippingSection').classList.toggle('disabled', isPlotMode);
-            document.getElementById('dipStationSection').classList.toggle('disabled', isPlotMode);
-            document.getElementById('dipZGroup').classList.toggle('disabled', isPlotMode);
-            document.getElementById('angleGroup').classList.toggle('disabled', !isLinear);
+        // PathOptimizer Class
+        class PathOptimizer {
+            static optimize(paths, startPos) {
+                const numPaths = paths.length;
+                if (numPaths === 0) return [];
+                
+                if (numPaths > 5000) {
+                    return paths.sort((a, b) => {
+                        const xa = Math.floor(a[0][0] / 20);
+                        const xb = Math.floor(b[0][0] / 20);
+                        if (xa !== xb) return xa - xb;
+                        const ya = xa % 2 === 0 ? a[0][1] : -a[0][1];
+                        const yb = xb % 2 === 0 ? b[0][1] : -b[0][1];
+                        return ya - yb;
+                    });
+                }
+                
+                const optimized = [];
+                const remaining = [...paths];
+                let curr = startPos;
+                
+                while (remaining.length > 0) {
+                    let minDist = Infinity;
+                    let minIdx = 0;
+                    
+                    for (let i = 0; i < remaining.length; i++) {
+                        const dist = Math.hypot(
+                            remaining[i][0][0] - curr[0],
+                            remaining[i][0][1] - curr[1]
+                        );
+                        if (dist < minDist) {
+                            minDist = dist;
+                            minIdx = i;
+                        }
+                    }
+                    
+                    const path = remaining.splice(minIdx, 1)[0];
+                    optimized.push(path);
+                    curr = path[path.length - 1];
+                }
+                
+                return optimized;
+            }
         }
         
-        document.getElementById('mode').addEventListener('change', updateUIState);
-        document.getElementById('infillType').addEventListener('change', updateUIState);
-        
-        // Image upload handler
-        document.getElementById('imageUpload').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                const img = new Image();
-                img.onload = function() {
-                    currentImage = img;
-                    
-                    const canvas = document.getElementById('previewCanvas');
-                    const ctx = canvas.getContext('2d');
-                    
-                    const containerWidth = document.getElementById('previewContainer').offsetWidth;
-                    const aspectRatio = img.height / img.width;
-                    
-                    canvas.width = Math.min(containerWidth - 40, img.width);
-                    canvas.height = canvas.width * aspectRatio;
-                    
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    
-                    document.getElementById('placeholder').classList.add('hidden');
-                    canvas.style.display = 'block';
-                    document.getElementById('gcodeCanvas').style.display = 'none';
-                    document.getElementById('statsOverlay').style.display = 'none';
-                };
-                img.src = event.target.result;
-            };
-            reader.readAsDataURL(file);
-        });
-        
-        // G-code Generator
-        class GCodePainter {
-            constructor(cfg) {
-                this.cfg = cfg;
+        // UltraPainter Class
+        class UltraPainter {
+            constructor(config, logCallback) {
+                this.config = config;
+                this.log = logCallback;
                 this.gcode = [];
-                this.currentPos = [0, 0];
                 this.distSinceDip = 0;
-                this.currentMaxDist = 0;
-                this.dipCount = 0;
-                this.paths = [];
-                this.imgHeightMM = 0;
+                this.currentPos = [config.dip_x, config.dip_y];
+                this.currentMaxDist = this.randomRange(config.min_dist, config.max_dist);
+                
+                // Backlash tracking
+                this.logicalX = config.dip_x;
+                this.logicalY = config.dip_y;
+                this.offsetX = 0;
+                this.offsetY = 0;
+                this.dirX = 0;
+                this.dirY = 0;
+                this.currentFeed = config.feed;
             }
             
             randomRange(min, max) {
                 return min + Math.random() * (max - min);
             }
             
-            updatePos(x, y) {
-                this.currentPos = [x, y];
-            }
-            
-            generate(imgData, width, height) {
-                const res = this.cfg.resolution;
-                this.imgHeightMM = this.cfg.targetWidth * (height / width);
+            addMove(cmd, x = null, y = null, z = null, feed = null, comment = null) {
+                const c = this.config;
                 
-                if (this.cfg.infillType === 'concentric') {
-                    this.paths = this.generateConcentric(imgData, width, height, res);
-                } else {
-                    this.paths = this.generateLinear(imgData, width, height, res);
-                }
-                
-                this.paths = this.optimizePaths(this.paths);
-                
-                if (this.cfg.mode === 'plot') {
-                    return this.generatePlotGCode();
-                } else {
-                    return this.generatePaintGCode();
-                }
-            }
-            
-            // Helper to get Final Coordinates (Flipped Y + Offsets)
-            getRealCoords(x, y) {
-                return [
-                    x + this.cfg.xOff, 
-                    (this.imgHeightMM - y) + this.cfg.yOff
-                ];
-            }
-            
-            generateLinear(imgData, width, height, res) {
-                const c = this.cfg;
-                const targetW = c.targetWidth;
-                const targetH = this.imgHeightMM;
-                const angle = c.infillAngle * Math.PI / 180;
-                const step = c.brushW * (1 - c.overlap);
-                const diag = Math.hypot(targetW, targetH);
-                const paths = [];
-                
-                const numLines = Math.ceil(diag / step);
-                
-                for (let i = -numLines; i <= numLines; i++) {
-                    const offset = i * step;
-                    let path = [];
+                // Backlash compensation
+                if (x !== null || y !== null) {
+                    const targetX = x !== null ? x : this.logicalX;
+                    const targetY = y !== null ? y : this.logicalY;
                     
-                    for (let d = -diag; d <= diag; d += 1/res) {
-                        const cx = targetW / 2;
-                        const cy = targetH / 2;
+                    // Check X-axis
+                    const dx = targetX - this.logicalX;
+                    if (Math.abs(dx) > c.backlash_threshold) {
+                        const newDirX = dx > 0 ? 1 : -1;
                         
-                        const x = (d - cx) * Math.cos(angle) - (offset - cy) * Math.sin(angle) + cx;
-                        const y = (d - cx) * Math.sin(angle) + (offset - cy) * Math.cos(angle) + cy;
-                        
-                        const px = Math.floor(x * res);
-                        const py = Math.floor(y * res);
-                        
-                        if (px >= 0 && px < width && py >= 0 && py < height) {
-                            const idx = (py * width + px) * 4;
-                            if (imgData.data[idx] < 140) {
-                                // Store Image Space Coords (no offset yet)
-                                path.push([y, x]);
-                            } else {
-                                if (path.length > 2) paths.push(path);
-                                path = [];
-                            }
-                        } else {
-                            if (path.length > 2) paths.push(path);
-                            path = [];
-                        }
-                    }
-                    if (path.length > 2) paths.push(path);
-                }
-                
-                return paths;
-            }
-            
-            generateConcentric(imgData, width, height, res) {
-                const c = this.cfg;
-                
-                // Convert to binary flat array for performance
-                const len = width * height;
-                const binary = new Uint8Array(len);
-                for (let i = 0; i < len; i++) {
-                    binary[i] = imgData.data[i * 4] < 140 ? 1 : 0;
-                }
-                
-                const paths = [];
-                const erosionStep = Math.max(1, Math.round(c.brushW * (1 - c.overlap) * res));
-                let currentBinary = binary;
-                let layer = 0;
-
-                // Loop to create concentric rings
-                while (layer < 500) { // Safety limit
-                    // 1. Find all edge pixels
-                    const edgeData = this.findEdges(currentBinary, width, height);
-                    if (edgeData.count === 0) break;
-
-                    // 2. Trace distinct loops
-                    const loops = this.traceLoops(edgeData, width, height);
-                    
-                    // 3. Convert loops to physical coordinates (Image Space)
-                    for (const loop of loops) {
-                        if (loop.length < 3) continue;
-                        
-                        const physPath = loop.map(idx => {
-                            const y = Math.floor(idx / width);
-                            const x = idx % width;
-                            return [
-                                y / res, // Raw Y (Top-down)
-                                x / res  // Raw X
-                            ];
-                        });
-                        paths.push(physPath);
-                    }
-
-                    // 4. Erode
-                    currentBinary = this.erode(currentBinary, width, height, erosionStep);
-                    layer++;
-                }
-                
-                return paths;
-            }
-
-            findEdges(binary, width, height) {
-                const map = new Uint8Array(width * height);
-                let count = 0;
-                
-                for (let y = 0; y < height; y++) {
-                    for (let x = 0; x < width; x++) {
-                        const idx = y * width + x;
-                        if (binary[idx] === 1) {
-                            let isEdge = false;
-                            if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
-                                isEdge = true;
-                            } else if (
-                                binary[idx - 1] === 0 || 
-                                binary[idx + 1] === 0 || 
-                                binary[idx - width] === 0 || 
-                                binary[idx + width] === 0
-                            ) {
-                                isEdge = true;
-                            }
+                        if (this.dirX !== 0 && newDirX !== this.dirX) {
+                            const change = newDirX === 1 ? c.backlash_x : -c.backlash_x;
+                            this.offsetX += change;
                             
-                            if (isEdge) {
-                                map[idx] = 1;
-                                count++;
-                            }
-                        }
-                    }
-                }
-                return { map, count };
-            }
-
-            traceLoops(edgeData, width, height) {
-                const loops = [];
-                const map = edgeData.map;
-                const visited = new Uint8Array(width * height);
-                
-                const getValidNeighbors = (idx) => {
-                    const cx = idx % width;
-                    const cy = Math.floor(idx / width);
-                    const n = [];
-                    
-                    for (let dy = -1; dy <= 1; dy++) {
-                        for (let dx = -1; dx <= 1; dx++) {
-                            if (dx === 0 && dy === 0) continue;
+                            let physicalXFix = this.logicalX + this.offsetX;
+                            let physicalYFix = this.logicalY + this.offsetY;
                             
-                            const nx = cx + dx;
-                            const ny = cy + dy;
+                            if (physicalXFix < 0) physicalXFix = 0;
+                            if (physicalYFix < 0) physicalYFix = 0;
                             
-                            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                                const nIdx = ny * width + nx;
-                                if (map[nIdx] === 1 && visited[nIdx] === 0) {
-                                    n.push(nIdx);
-                                }
-                            }
+                            this.gcode.push(`; --- FIX X Backlash: ${change.toFixed(3)}mm ---`);
+                            this.gcode.push(`G0 X${physicalXFix.toFixed(3)} Y${physicalYFix.toFixed(3)} F${c.backlash_feed}`);
                         }
-                    }
-                    return n;
-                };
-
-                for (let i = 0; i < map.length; i++) {
-                    if (map[i] === 1 && visited[i] === 0) {
-                        const loop = [i];
-                        visited[i] = 1;
-                        let curr = i;
-                        let found = true;
                         
-                        while (found) {
-                            found = false;
-                            const neighbors = getValidNeighbors(curr);
+                        this.dirX = newDirX;
+                    }
+                    
+                    // Check Y-axis
+                    const dy = targetY - this.logicalY;
+                    if (Math.abs(dy) > c.backlash_threshold) {
+                        const newDirY = dy > 0 ? 1 : -1;
+                        
+                        if (this.dirY !== 0 && newDirY !== this.dirY) {
+                            const change = newDirY === 1 ? c.backlash_y : -c.backlash_y;
+                            this.offsetY += change;
                             
-                            if (neighbors.length > 0) {
-                                const next = neighbors[0];
-                                visited[next] = 1;
-                                loop.push(next);
-                                curr = next;
-                                found = true;
-                            }
-                        }
-                        loops.push(loop);
-                    }
-                }
-                return loops;
-            }
-            
-            erode(binary, width, height, amount) {
-                const result = new Uint8Array(width * height);
-                
-                for (let y = 0; y < height; y++) {
-                    for (let x = 0; x < width; x++) {
-                        const idx = y * width + x;
-                        if (binary[idx] === 1) {
-                            let keep = true;
-                            checkLoop:
-                            for (let dy = -amount; dy <= amount; dy++) {
-                                for (let dx = -amount; dx <= amount; dx++) {
-                                    const ny = y + dy;
-                                    const nx = x + dx;
-                                    
-                                    if (ny < 0 || ny >= height || nx < 0 || nx >= width) {
-                                        keep = false;
-                                        break checkLoop;
-                                    }
-                                    if (binary[ny * width + nx] === 0) {
-                                        keep = false;
-                                        break checkLoop;
-                                    }
-                                }
-                            }
-                            if (keep) result[idx] = 1;
-                        }
-                    }
-                }
-                return result;
-            }
-            
-            optimizePaths(paths) {
-                if (paths.length <= 1) return paths;
-                
-                const optimized = [paths[0]];
-                const remaining = paths.slice(1);
-                
-                while (remaining.length > 0) {
-                    const lastPath = optimized[optimized.length - 1];
-                    const lastPt = lastPath[lastPath.length - 1];
-                    
-                    let minDist = Infinity;
-                    let minIdx = 0;
-                    let reverseNext = false;
-                    
-                    for (let i = 0; i < remaining.length; i++) {
-                        const startPt = remaining[i][0];
-                        const endPt = remaining[i][remaining[i].length - 1];
-                        
-                        const dStart = Math.hypot(startPt[0] - lastPt[0], startPt[1] - lastPt[1]);
-                        const dEnd = Math.hypot(endPt[0] - lastPt[0], endPt[1] - lastPt[1]);
-                        
-                        if (dStart < minDist) {
-                            minDist = dStart;
-                            minIdx = i;
-                            reverseNext = false;
-                        }
-                        if (dEnd < minDist) {
-                            minDist = dEnd;
-                            minIdx = i;
-                            reverseNext = true;
-                        }
-                    }
-                    
-                    const nextPath = remaining[minIdx];
-                    if (reverseNext) nextPath.reverse();
-                    
-                    optimized.push(nextPath);
-                    remaining.splice(minIdx, 1);
-                }
-                
-                return optimized;
-            }
-            
-            generatePlotGCode() {
-                const c = this.cfg;
-                this.gcode = ["G21", "G90", "G0 Z10"];
-                this.setSpeed('travel');
-                
-                for (const path of this.paths) {
-                    if (path.length === 0) continue;
-                    
-                    // Apply offsets and Flip Y
-                    const [sx, sy] = this.getRealCoords(path[0][1], path[0][0]);
-                    
-                    this.gcode.push(`G0 X${sx.toFixed(3)} Y${sy.toFixed(3)}`);
-                    this.gcode.push(`G1 Z${c.zPaint.toFixed(3)}`);
-                    
-                    for (let i = 1; i < path.length; i++) {
-                        const [px, py] = this.getRealCoords(path[i][1], path[i][0]);
-                        this.gcode.push(`G1 X${px.toFixed(3)} Y${py.toFixed(3)}`);
-                    }
-                    
-                    this.gcode.push(`G0 Z${c.zLow}`);
-                }
-                
-                this.gcode.push("M2");
-                return this.gcode.join('\n');
-            }
-            
-            generatePaintGCode() {
-                const c = this.cfg;
-                this.gcode = ["G21", "G90"];
-                this.currentMaxDist = this.randomRange(c.minDist, c.maxDist);
-                
-                this.setSpeed('travel');
-                this.gcode.push(`G0 Z${c.zHigh}`);
-                
-                if (this.paths.length > 0) {
-                   const [tx, ty] = this.getRealCoords(this.paths[0][0][1], this.paths[0][0][0]);
-                   this.dip(tx, ty);
-                }
-                
-                for (const path of this.paths) {
-                    if (path.length === 0) continue;
-
-                    const [sx, sy] = this.getRealCoords(path[0][1], path[0][0]);
-                    
-                    const dist = Math.hypot(
-                        this.currentPos[0] - sx,
-                        this.currentPos[1] - sy
-                    );
-                    
-                    if (dist > 0.5) {
-                        this.setSpeed('travel');
-                        this.gcode.push(`G0 X${sx.toFixed(3)} Y${sy.toFixed(3)} Z${c.zLow}`);
-                        this.updatePos(sx, sy);
-                    }
-                    
-                    for (let i = 1; i < path.length; i++) {
-                        const [px, py] = this.getRealCoords(path[i][1], path[i][0]);
-                        const segLen = Math.hypot(px - this.currentPos[0], py - this.currentPos[1]);
-                        
-                        if (this.distSinceDip + segLen > this.currentMaxDist) {
-                            this.dip(px, py);
+                            let physicalXFix = this.logicalX + this.offsetX;
+                            let physicalYFix = this.logicalY + this.offsetY;
+                            
+                            if (physicalXFix < 0) physicalXFix = 0;
+                            if (physicalYFix < 0) physicalYFix = 0;
+                            
+                            this.gcode.push(`; --- FIX Y Backlash: ${change.toFixed(3)}mm ---`);
+                            this.gcode.push(`G0 X${physicalXFix.toFixed(3)} Y${physicalYFix.toFixed(3)} F${c.backlash_feed}`);
                         }
                         
-                        this.setSpeed('paint');
-                        this.gcode.push(`G1 Z${c.zPaint.toFixed(3)}`);
-                        this.gcode.push(`G1 X${px.toFixed(3)} Y${py.toFixed(3)}`);
-                        this.distSinceDip += segLen;
-                        this.updatePos(px, py);
+                        this.dirY = newDirY;
                     }
                     
-                    this.gcode.push(`G0 Z${c.zLow}`);
+                    this.logicalX = targetX;
+                    this.logicalY = targetY;
                 }
                 
-                this.gcode.push("M2");
-                return this.gcode.join('\n');
-            }
-            
-            setSpeed(type) {
-                const c = this.cfg;
-                const f = type === 'travel' ? c.feed : c.feedPaint;
-                const a = type === 'travel' ? c.accelTravel : c.accelPaint;
-                this.gcode.push("M400", `M204 P${a} T${a}`, `M203 X${f} Y${f} Z${f}`, `G0 F${f}`);
-            }
-            
-            dip(tx, ty) {
-                const c = this.cfg;
-                this.setSpeed('travel');
+                // Build move with offsets
+                let finalX = x !== null ? x + this.offsetX : null;
+                let finalY = y !== null ? y + this.offsetY : null;
                 
-                const jx = this.randomRange(-c.dipJitter, c.dipJitter);
-                const jy = this.randomRange(-c.dipJitter, c.dipJitter);
-                const dx = c.dipX + jx;
-                const dy = c.dipY + jy;
+                if (finalX !== null && finalX < 0) finalX = 0;
+                if (finalY !== null && finalY < 0) finalY = 0;
                 
-                this.gcode.push(`G0 X${dx.toFixed(3)} Y${dy.toFixed(3)} Z${c.zHigh}`);
+                let line = cmd;
+                if (finalX !== null) line += ` X${finalX.toFixed(3)}`;
+                if (finalY !== null) line += ` Y${finalY.toFixed(3)}`;
+                if (z !== null) line += ` Z${z.toFixed(3)}`;
                 
-                this.setSpeed('paint');
-                this.gcode.push(`G1 Z${c.dipZ}`);
-                
-                const dir = (this.dipCount++ % 2) ? 1 : -1;
-                for (let t = 0; t <= 2.5 * Math.PI; t += 0.1) {
-                    const r = (t / (2.5 * Math.PI)) * c.dipSpiralR;
-                    this.gcode.push(`G1 X${(dx + r * Math.cos(t * dir)).toFixed(3)} Y${(dy + r * Math.sin(t * dir)).toFixed(3)}`);
+                if (feed !== null) {
+                    line += ` F${Math.round(feed)}`;
+                    this.currentFeed = feed;
+                } else if (cmd === 'G1') {
+                    line += ` F${Math.round(this.currentFeed)}`;
                 }
-                this.gcode.push("G4 P300");
                 
-                this.setSpeed('travel');
-                this.gcode.push(`G0 Z${c.zHigh}`);
+                if (comment) {
+                    this.gcode.push(comment);
+                }
+                this.gcode.push(line);
+            }
+            
+            performDipAndTravel(targetX, targetY) {
+                const c = this.config;
+                this.gcode.push('\n; --- CIKEL NAMAKANJA ---');
                 
-                const angle = Math.atan2(ty - c.dipY, tx - c.dipX);
-                this.gcode.push(`G0 X${(c.dipX + c.wipeR * Math.cos(angle)).toFixed(3)} Y${(c.dipY + c.wipeR * Math.sin(angle)).toFixed(3)} Z${c.zHigh}`);
-                this.gcode.push(`G0 X${tx.toFixed(3)} Y${ty.toFixed(3)} Z${c.zLow}`);
+                this.addMove('G0', null, null, c.z_low, 3000);
+                this.currentFeed = c.feed;
+                
+                const ax = c.dip_x + this.randomRange(-c.dip_jitter, c.dip_jitter);
+                const ay = c.dip_y + this.randomRange(-c.dip_jitter, c.dip_jitter);
+                
+                this.addMove('G0', ax, ay, c.z_high);
+                this.addMove('G1', null, null, c.dip_z, 3000);
+                
+                const numSteps = Math.floor(c.dip_spiral_loops * 4);
+                for (let i = 0; i < numSteps; i++) {
+                    const ang = i * (Math.PI / 2);
+                    const r = (i / numSteps) * c.dip_spiral_r;
+                    const sx = ax + r * Math.cos(ang);
+                    const sy = ay + r * Math.sin(ang);
+                    this.addMove('G1', sx, sy, null, 2500);
+                }
+                
+                const dx = targetX - c.dip_x;
+                const dy = targetY - c.dip_y;
+                const dist = Math.hypot(dx, dy);
+                const wx = dist > 0 ? c.dip_x + (dx / dist * c.wipe_r) : c.dip_x + c.wipe_r;
+                const wy = dist > 0 ? c.dip_y + (dy / dist * c.wipe_r) : c.dip_y;
+                
+                this.addMove('G0', null, null, c.z_wipe_exit, 3000);
+                this.addMove('G0', wx, wy);
+                this.addMove('G0', null, null, c.z_high, 3000);
+                this.addMove('G0', targetX, targetY, c.z_low);
                 
                 this.distSinceDip = 0;
-                this.currentMaxDist = this.randomRange(c.minDist, c.maxDist);
-                this.updatePos(tx, ty);
+                this.currentMaxDist = this.randomRange(c.min_dist, c.max_dist);
+                this.currentPos = [targetX, targetY];
+            }
+            
+            generate(imageData, width, height) {
+                this.log('🎨 Starting G-code generation...', 'info');
+                const c = this.config;
+                
+                // Process image
+                this.log('📸 Processing image...', 'info');
+                const threshold = 140;
+                const arr = [];
+                
+                for (let y = 0; y < height; y++) {
+                    arr[y] = [];
+                    for (let x = 0; x < width; x++) {
+                        const idx = (y * width + x) * 4;
+                        const gray = imageData[idx];
+                        arr[y][x] = gray < threshold;
+                    }
+                }
+                
+                // Generate paths
+                this.log('🔄 Generating paths...', 'info');
+                const rawPaths = [];
+                const res = 4.8;
+                const stepPx = Math.floor((c.brush_w * (1 - c.overlap)) * res);
+                
+                if (c.infill_type === 'concentric') {
+                    this.log('🌀 Using concentric infill...', 'info');
+                    // Simplified concentric (basic implementation)
+                    for (let y = 0; y < height; y += stepPx) {
+                        const line = [];
+                        for (let x = 0; x < width; x++) {
+                            if (arr[y] && arr[y][x]) {
+                                line.push([x / res + c.x_off, y / res + c.y_off]);
+                            } else {
+                                if (line.length > 1) rawPaths.push([...line]);
+                                line.length = 0;
+                            }
+                        }
+                        if (line.length > 1) rawPaths.push(line);
+                    }
+                } else {
+                    this.log(`📐 Using lines infill at ${c.infill_angle}°...`, 'info');
+                    const angleRad = c.infill_angle * Math.PI / 180;
+                    const cosA = Math.cos(angleRad);
+                    const sinA = Math.sin(angleRad);
+                    const cx = width / 2;
+                    const cy = height / 2;
+                    const diag = Math.floor(Math.hypot(width, height)) + 10;
+                    
+                    for (let yRot = -diag; yRot < diag; yRot += Math.max(1, stepPx)) {
+                        const line = [];
+                        for (let xRot = -diag; xRot < diag; xRot++) {
+                            const origX = Math.floor(cx + xRot * cosA - yRot * sinA);
+                            const origY = Math.floor(cy + xRot * sinA + yRot * cosA);
+                            
+                            if (origX >= 0 && origX < width && origY >= 0 && origY < height && 
+                                arr[origY] && arr[origY][origX]) {
+                                const realX = origX / res + c.x_off;
+                                const realY = origY / res + c.y_off;
+                                line.push([realX, realY]);
+                            } else {
+                                if (line.length > 1) rawPaths.push([...line]);
+                                line.length = 0;
+                            }
+                        }
+                        if (line.length > 1) rawPaths.push(line);
+                    }
+                }
+                
+                this.log(`✅ Generated ${rawPaths.length} raw paths`, 'success');
+                
+                // Optimize paths
+                this.log('🎯 Optimizing path order...', 'info');
+                const paths = PathOptimizer.optimize(rawPaths, [c.dip_x, c.dip_y]);
+                this.log(`✅ Optimized to ${paths.length} paths`, 'success');
+                
+                // Generate G-code
+                this.log('⚙️ Generating G-code...', 'info');
+                this.gcode = ['G90 ; Absolute positioning', 'G21 ; Millimeters'];
+                
+                if (paths.length > 0) {
+                    this.performDipAndTravel(paths[0][0][0], paths[0][0][1]);
+                    
+                    for (let pathIdx = 0; pathIdx < paths.length; pathIdx++) {
+                        let path = paths[pathIdx];
+                        
+                        // Bidirectional optimization
+                        const distToStart = Math.hypot(
+                            path[0][0] - this.currentPos[0],
+                            path[0][1] - this.currentPos[1]
+                        );
+                        const distToEnd = Math.hypot(
+                            path[path.length - 1][0] - this.currentPos[0],
+                            path[path.length - 1][1] - this.currentPos[1]
+                        );
+                        
+                        if (distToEnd < distToStart) {
+                            path = path.reverse();
+                        }
+                        
+                        // Move to start
+                        this.currentFeed = c.feed;
+                        this.addMove('G0', path[0][0], path[0][1], c.z_low);
+                        
+                        // Lower to paint
+                        this.currentFeed = c.feed_paint;
+                        this.addMove('G1', null, null, c.z_paint, 2500);
+                        this.currentPos = [path[0][0], path[0][1]];
+                        
+                        // Paint the path
+                        for (let i = 1; i < path.length; i++) {
+                            const px = path[i][0];
+                            const py = path[i][1];
+                            const dist = Math.hypot(
+                                px - this.currentPos[0],
+                                py - this.currentPos[1]
+                            );
+                            
+                            // Check if need re-dip
+                            if ((this.distSinceDip + dist) > this.currentMaxDist) {
+                                this.addMove('G0', null, null, c.z_low, 3000);
+                                this.performDipAndTravel(px, py);
+                                this.currentFeed = c.feed_paint;
+                                this.addMove('G1', null, null, c.z_paint, 2500);
+                            }
+                            
+                            this.addMove('G1', px, py);
+                            this.distSinceDip += dist;
+                            this.currentPos = [px, py];
+                        }
+                        
+                        // Lift after path
+                        this.addMove('G0', null, null, c.z_low, 3000);
+                        
+                        if (pathIdx % 50 === 0) {
+                            this.log(`📍 Processed ${pathIdx + 1}/${paths.length} paths`, 'info');
+                        }
+                    }
+                }
+                
+                // End program
+                this.addMove('G0', null, null, c.z_high, 3000);
+                this.gcode.push('M2 ; End program');
+                
+                this.log(`🎉 G-code generation complete! ${this.gcode.length} lines`, 'success');
+                
+                return {
+                    gcode: this.gcode.join('\n'),
+                    stats: {
+                        lines: this.gcode.length,
+                        paths: paths.length
+                    }
+                };
             }
         }
         
-        // Visualization
-        function visualize(gcode, paths, mode) {
-            const canvas = document.getElementById('gcodeCanvas');
-            const ctx = canvas.getContext('2d');
-            
-            const container = document.getElementById('previewContainer');
-            canvas.width = container.offsetWidth - 40;
-            canvas.height = 600;
-            
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            if (!paths || paths.length === 0) return;
-            
-            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-            paths.forEach(p => p.forEach(pt => {
-                minX = Math.min(minX, pt[1]);
-                minY = Math.min(minY, pt[0]);
-                maxX = Math.max(maxX, pt[1]);
-                maxY = Math.max(maxY, pt[0]);
-            }));
-            
-            const margin = 40;
-            // Prevent division by zero if single point
-            const w = maxX - minX || 1;
-            const h = maxY - minY || 1;
-            
-            const sx = (canvas.width - margin * 2) / w;
-            const sy = (canvas.height - margin * 2) / h;
-            const scale = Math.min(sx, sy);
-            
-            const ox = margin - minX * scale + (canvas.width - margin * 2 - w * scale) / 2;
-            const oy = margin - minY * scale + (canvas.height - margin * 2 - h * scale) / 2;
-            
-            // Travel moves
-            ctx.strokeStyle = 'rgba(0, 212, 255, 0.2)';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([5, 5]);
-            for (let i = 0; i < paths.length - 1; i++) {
-                const e = paths[i][paths[i].length - 1];
-                const s = paths[i + 1][0];
-                ctx.beginPath();
-                ctx.moveTo(e[1] * scale + ox, e[0] * scale + oy);
-                ctx.lineTo(s[1] * scale + ox, s[0] * scale + oy);
-                ctx.stroke();
-            }
-            ctx.setLineDash([]);
-            
-            // Paths
-            paths.forEach((path, i) => {
-                ctx.beginPath();
-                ctx.strokeStyle = `hsl(${(i / paths.length) * 360}, 80%, 60%)`;
-                ctx.lineWidth = 2;
-                
-                path.forEach((pt, j) => {
-                    const x = pt[1] * scale + ox;
-                    const y = pt[0] * scale + oy;
-                    j === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-                });
-                ctx.stroke();
+        // Main App Component
+        function App() {
+            const [config, setConfig] = useState({
+                target_width: 129.0,
+                brush_w: 1.0,
+                overlap: 0.15,
+                infill_type: 'lines',
+                infill_angle: 90.0,
+                min_dist: 90.0,
+                max_dist: 100.0,
+                z_paint: 0.0,
+                z_low: 1.0,
+                z_high: 8.0,
+                z_wipe_exit: 6.0,
+                x_off: 0.0,
+                y_off: 20.0,
+                dip_x: 60.0,
+                dip_y: 0.0,
+                dip_z: 0.3,
+                dip_jitter: 7.0,
+                dip_spiral_loops: 1.0,
+                dip_spiral_r: 10.0,
+                wipe_r: 15.0,
+                feed: 1500,
+                feed_paint: 400,
+                backlash_x: 0.5,
+                backlash_y: 1.6,
+                backlash_threshold: 0.05,
+                backlash_feed: 200
             });
             
-            document.getElementById('statLines').textContent = gcode.split('\n').length;
-            document.getElementById('statPaths').textContent = paths.length;
-            document.getElementById('statDips').textContent = mode === 'plot' ? 'N/A' : (gcode.match(/G4 P300/g) || []).length;
-            document.getElementById('statTime').textContent = Math.ceil(gcode.split('\n').length / 20) + ' min';
-            document.getElementById('statsOverlay').style.display = 'block';
-        }
-        
-        // Generate
-        document.getElementById('generateBtn').addEventListener('click', async function() {
-            if (!currentImage) {
-                alert('Please upload an image first');
-                return;
-            }
+            const [image, setImage] = useState(null);
+            const [imageData, setImageData] = useState(null);
+            const [gcode, setGcode] = useState('');
+            const [terminal, setTerminal] = useState([]);
+            const [stats, setStats] = useState({ lines: 0, paths: 0 });
+            const [activeTab, setActiveTab] = useState('image');
+            const [filename, setFilename] = useState('');
             
-            document.getElementById('loading').classList.remove('hidden');
-            await new Promise(r => setTimeout(r, 100));
+            const imageCanvasRef = useRef(null);
+            const gcodeCanvasRef = useRef(null);
+            const fileInputRef = useRef(null);
             
-            try {
-                const config = {
-                    mode: document.getElementById('mode').value,
-                    infillType: document.getElementById('infillType').value,
-                    infillAngle: parseFloat(document.getElementById('infillAngle').value),
-                    resolution: parseFloat(document.getElementById('resolution').value),
-                    targetWidth: parseFloat(document.getElementById('targetWidth').value),
-                    brushW: parseFloat(document.getElementById('brushW').value),
-                    overlap: parseFloat(document.getElementById('overlap').value),
-                    minDist: parseFloat(document.getElementById('minDist').value),
-                    maxDist: parseFloat(document.getElementById('maxDist').value),
-                    zPaint: parseFloat(document.getElementById('zPaint').value),
-                    zLow: parseFloat(document.getElementById('zLow').value),
-                    zHigh: parseFloat(document.getElementById('zHigh').value),
-                    dipZ: parseFloat(document.getElementById('dipZ').value),
-                    xOff: parseFloat(document.getElementById('xOff').value),
-                    yOff: parseFloat(document.getElementById('yOff').value),
-                    dipX: parseFloat(document.getElementById('dipX').value),
-                    dipY: parseFloat(document.getElementById('dipY').value),
-                    dipJitter: parseFloat(document.getElementById('dipJitter').value),
-                    dipSpiralR: parseFloat(document.getElementById('dipSpiralR').value),
-                    wipeR: parseFloat(document.getElementById('wipeR').value),
-                    feed: parseFloat(document.getElementById('feed').value),
-                    feedPaint: parseFloat(document.getElementById('feedPaint').value),
-                    accelTravel: parseFloat(document.getElementById('accelTravel').value),
-                    accelPaint: parseFloat(document.getElementById('accelPaint').value)
-                };
+            const log = (message, type = 'info') => {
+                setTerminal(prev => [...prev, { message, type, time: new Date().toLocaleTimeString() }]);
+            };
+            
+            const handleImageUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
                 
-                const canvas = document.createElement('canvas');
+                setFilename(file.name);
+                log(`📁 Loading image: ${file.name}`, 'info');
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        // Show original image in preview (not flipped)
+                        const previewCanvas = imageCanvasRef.current;
+                        const previewCtx = previewCanvas.getContext('2d');
+                        
+                        // Calculate dimensions
+                        const res = 4.8;
+                        const targetWidth = config.target_width * res;
+                        const targetHeight = targetWidth * (img.height / img.width);
+                        
+                        previewCanvas.width = targetWidth;
+                        previewCanvas.height = targetHeight;
+                        
+                        // Draw original image for preview
+                        previewCtx.drawImage(img, 0, 0, targetWidth, targetHeight);
+                        
+                        // Create a separate canvas for processing with flip
+                        const processCanvas = document.createElement('canvas');
+                        processCanvas.width = targetWidth;
+                        processCanvas.height = targetHeight;
+                        const processCtx = processCanvas.getContext('2d');
+                        
+                        // Draw flipped for processing (to match Python behavior)
+                        processCtx.save();
+                        processCtx.scale(1, -1);
+                        processCtx.drawImage(img, 0, -targetHeight, targetWidth, targetHeight);
+                        processCtx.restore();
+                        
+                        // Get image data from the flipped version for processing
+                        const imgData = processCtx.getImageData(0, 0, processCanvas.width, processCanvas.height);
+                        
+                        setImage(img);
+                        setImageData(imgData);
+                        log(`✅ Image loaded: ${previewCanvas.width}x${previewCanvas.height}px`, 'success');
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            };
+            
+            const generateGcode = () => {
+                if (!imageData) {
+                    log('❌ Please upload an image first!', 'error');
+                    return;
+                }
+                
+                setTerminal([]);
+                log('🚀 Starting generation process...', 'info');
+                
+                setTimeout(() => {
+                    try {
+                        const painter = new UltraPainter(config, log);
+                        const result = painter.generate(
+                            imageData.data,
+                            imageData.width,
+                            imageData.height
+                        );
+                        
+                        setGcode(result.gcode);
+                        setStats(result.stats);
+                        setActiveTab('visual');
+                    } catch (err) {
+                        log(`❌ Error: ${err.message}`, 'error');
+                    }
+                }, 100);
+            };
+            
+            const downloadGcode = () => {
+                if (!gcode) return;
+                
+                const blob = new Blob([gcode], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename.replace(/\.[^.]+$/, '') + '.gcode';
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                log(`💾 Downloaded: ${a.download}`, 'success');
+            };
+            
+            const visualizeGcode = () => {
+                if (!gcode || !gcodeCanvasRef.current) return;
+                
+                const canvas = gcodeCanvasRef.current;
                 const ctx = canvas.getContext('2d');
                 
-                const w = Math.floor(config.targetWidth * config.resolution);
-                const h = Math.floor(w * (currentImage.height / currentImage.width));
+                // Parse G-code to extract movements
+                const lines = gcode.split('\n');
+                let x = 0, y = 0, z = 0;
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                const moves = [];
                 
-                canvas.width = w;
-                canvas.height = h;
-                ctx.drawImage(currentImage, 0, 0, w, h);
+                // First pass: collect all moves and find bounds
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (!trimmed || trimmed.startsWith(';')) continue;
+                    
+                    let newX = x, newY = y, newZ = z;
+                    let hasMove = false;
+                    
+                    const xMatch = trimmed.match(/X([-\d.]+)/);
+                    if (xMatch) {
+                        newX = parseFloat(xMatch[1]);
+                        hasMove = true;
+                    }
+                    
+                    const yMatch = trimmed.match(/Y([-\d.]+)/);
+                    if (yMatch) {
+                        newY = parseFloat(yMatch[1]);
+                        hasMove = true;
+                    }
+                    
+                    const zMatch = trimmed.match(/Z([-\d.]+)/);
+                    if (zMatch) {
+                        newZ = parseFloat(zMatch[1]);
+                    }
+                    
+                    if (hasMove) {
+                        const isTravel = trimmed.startsWith('G0');
+                        const isPaint = trimmed.startsWith('G1') && Math.abs(newZ - config.z_paint) < 0.1;
+                        
+                        moves.push({
+                            x1: x, y1: y,
+                            x2: newX, y2: newY,
+                            type: isPaint ? 'paint' : (isTravel ? 'travel' : 'other')
+                        });
+                        
+                        minX = Math.min(minX, x, newX);
+                        minY = Math.min(minY, y, newY);
+                        maxX = Math.max(maxX, x, newX);
+                        maxY = Math.max(maxY, y, newY);
+                        
+                        x = newX;
+                        y = newY;
+                    }
+                    z = newZ;
+                }
                 
-                const imgData = ctx.getImageData(0, 0, w, h);
+                // Set canvas size and calculate scaling
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
                 
-                const painter = new GCodePainter(config);
-                generatedGCode = painter.generate(imgData, w, h);
+                const padding = 30;
+                const rangeX = maxX - minX || 1;
+                const rangeY = maxY - minY || 1;
+                const scale = Math.min(
+                    (canvas.width - 2 * padding) / rangeX,
+                    (canvas.height - 2 * padding) / rangeY
+                );
                 
-                document.getElementById('previewCanvas').style.display = 'none';
-                document.getElementById('gcodeCanvas').style.display = 'block';
-                visualize(generatedGCode, painter.paths, config.mode);
+                // Clear canvas
+                ctx.fillStyle = '#f5f5f5';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
-                document.getElementById('downloadBtn').disabled = false;
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error: ' + error.message);
-            } finally {
-                document.getElementById('loading').classList.add('hidden');
-            }
-        });
+                // Transform function
+                const transform = (x, y) => {
+                    return [
+                        padding + (x - minX) * scale,
+                        canvas.height - (padding + (y - minY) * scale)
+                    ];
+                };
+                
+                // Draw grid
+                ctx.strokeStyle = '#e0e0e0';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([5, 5]);
+                
+                const gridStep = 10; // mm
+                for (let gx = Math.floor(minX / gridStep) * gridStep; gx <= maxX; gx += gridStep) {
+                    const [sx, sy1] = transform(gx, minY);
+                    const [, sy2] = transform(gx, maxY);
+                    ctx.beginPath();
+                    ctx.moveTo(sx, sy1);
+                    ctx.lineTo(sx, sy2);
+                    ctx.stroke();
+                }
+                
+                for (let gy = Math.floor(minY / gridStep) * gridStep; gy <= maxY; gy += gridStep) {
+                    const [sx1, sy] = transform(minX, gy);
+                    const [sx2, ] = transform(maxX, gy);
+                    ctx.beginPath();
+                    ctx.moveTo(sx1, sy);
+                    ctx.lineTo(sx2, sy);
+                    ctx.stroke();
+                }
+                
+                ctx.setLineDash([]);
+                
+                // Draw travel moves (light gray)
+                ctx.strokeStyle = '#cccccc';
+                ctx.lineWidth = 1;
+                for (const move of moves) {
+                    if (move.type === 'travel') {
+                        const [x1, y1] = transform(move.x1, move.y1);
+                        const [x2, y2] = transform(move.x2, move.y2);
+                        ctx.beginPath();
+                        ctx.moveTo(x1, y1);
+                        ctx.lineTo(x2, y2);
+                        ctx.stroke();
+                    }
+                }
+                
+                // Draw paint moves (vibrant gradient)
+                for (const move of moves) {
+                    if (move.type === 'paint') {
+                        const [x1, y1] = transform(move.x1, move.y1);
+                        const [x2, y2] = transform(move.x2, move.y2);
+                        
+                        const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+                        gradient.addColorStop(0, '#f093fb');
+                        gradient.addColorStop(1, '#f5576c');
+                        
+                        ctx.strokeStyle = gradient;
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(x1, y1);
+                        ctx.lineTo(x2, y2);
+                        ctx.stroke();
+                    }
+                }
+                
+                // Draw dip position marker
+                const [dipX, dipY] = transform(config.dip_x, config.dip_y);
+                ctx.fillStyle = '#4facfe';
+                ctx.beginPath();
+                ctx.arc(dipX, dipY, 5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#0077cc';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Add labels
+                ctx.fillStyle = '#333';
+                ctx.font = '12px sans-serif';
+                ctx.fillText(`Dip`, dipX + 8, dipY + 4);
+                ctx.fillText(`${minX.toFixed(1)}, ${minY.toFixed(1)}`, padding, canvas.height - 10);
+                ctx.fillText(`${maxX.toFixed(1)}, ${maxY.toFixed(1)}`, canvas.width - padding - 60, padding + 15);
+                
+                log('🎨 G-code visualization complete', 'success');
+            };
+            
+            useEffect(() => {
+                if (gcode && activeTab === 'visual') {
+                    setTimeout(() => visualizeGcode(), 100);
+                }
+            }, [gcode, activeTab, config]);
+            
+            const updateConfig = (key, value) => {
+                setConfig(prev => ({ ...prev, [key]: parseFloat(value) || value }));
+            };
+            
+            return (
+                <div className="app-container">
+                    <div className="header">
+                        <h1>🎨 OpenBrushograph</h1>
+                        <p>"A man paints with his brains and not with his hands" Michelangelo</p>
+                    </div>
+                    
+                    <div className="main-content">
+                        {/* Controls Panel */}
+                        <div className="panel controls-panel">
+                            <div className="panel-title">⚙️ Settings</div>
+                            
+                            <div className="file-upload">
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    accept="image/*"
+                                    onChange={handleImageUpload}
+                                />
+                                <button
+                                    className="file-upload-btn"
+                                    onClick={() => fileInputRef.current.click()}
+                                >
+                                    📸 Upload Image
+                                </button>
+                                {filename && (
+                                    <div className="image-filename">📁 {filename}</div>
+                                )}
+                            </div>
+                            
+                            <div className="control-group">
+                                <h3>🖼️ Image Settings</h3>
+                                <div className="control-item">
+                                    <label>Target Width (mm)</label>
+                                    <input
+                                        type="number"
+                                        value={config.target_width}
+                                        onChange={(e) => updateConfig('target_width', e.target.value)}
+                                        step="0.1"
+                                    />
+                                </div>
+                                <div className="control-item">
+                                    <label>X Offset (mm)</label>
+                                    <input
+                                        type="number"
+                                        value={config.x_off}
+                                        onChange={(e) => updateConfig('x_off', e.target.value)}
+                                        step="0.1"
+                                    />
+                                </div>
+                                <div className="control-item">
+                                    <label>Y Offset (mm)</label>
+                                    <input
+                                        type="number"
+                                        value={config.y_off}
+                                        onChange={(e) => updateConfig('y_off', e.target.value)}
+                                        step="0.1"
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div className="control-group">
+                                <h3>🖌️ Brush Settings</h3>
+                                <div className="control-item">
+                                    <label>Brush Width (mm)</label>
+                                    <input
+                                        type="number"
+                                        value={config.brush_w}
+                                        onChange={(e) => updateConfig('brush_w', e.target.value)}
+                                        step="0.1"
+                                    />
+                                </div>
+                                <div className="control-item">
+                                    <label>Overlap (0-1)</label>
+                                    <input
+                                        type="number"
+                                        value={config.overlap}
+                                        onChange={(e) => updateConfig('overlap', e.target.value)}
+                                        step="0.01"
+                                        min="0"
+                                        max="1"
+                                    />
+                                </div>
+                                <div className="control-item">
+                                    <label>Infill Type</label>
+                                    <select
+                                        value={config.infill_type}
+                                        onChange={(e) => updateConfig('infill_type', e.target.value)}
+                                    >
+                                        <option value="lines">Lines</option>
+                                        <option value="concentric">Concentric</option>
+                                    </select>
+                                </div>
+                                {config.infill_type === 'lines' && (
+                                    <div className="control-item">
+                                        <label>Infill Angle (degrees)</label>
+                                        <input
+                                            type="number"
+                                            value={config.infill_angle}
+                                            onChange={(e) => updateConfig('infill_angle', e.target.value)}
+                                            step="1"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                            
+                            <div className="control-group">
+                                <h3>💧 Dipping Settings</h3>
+                                <div className="control-item">
+                                    <label>Min Distance (mm)</label>
+                                    <input
+                                        type="number"
+                                        value={config.min_dist}
+                                        onChange={(e) => updateConfig('min_dist', e.target.value)}
+                                        step="1"
+                                    />
+                                </div>
+                                <div className="control-item">
+                                    <label>Max Distance (mm)</label>
+                                    <input
+                                        type="number"
+                                        value={config.max_dist}
+                                        onChange={(e) => updateConfig('max_dist', e.target.value)}
+                                        step="1"
+                                    />
+                                </div>
+                                <div className="control-item">
+                                    <label>Dip X Position (mm)</label>
+                                    <input
+                                        type="number"
+                                        value={config.dip_x}
+                                        onChange={(e) => updateConfig('dip_x', e.target.value)}
+                                        step="0.1"
+                                    />
+                                </div>
+                                <div className="control-item">
+                                    <label>Dip Y Position (mm)</label>
+                                    <input
+                                        type="number"
+                                        value={config.dip_y}
+                                        onChange={(e) => updateConfig('dip_y', e.target.value)}
+                                        step="0.1"
+                                    />
+                                </div>
+                                <div className="control-item">
+                                    <label>Dip Z Height (mm)</label>
+                                    <input
+                                        type="number"
+                                        value={config.dip_z}
+                                        onChange={(e) => updateConfig('dip_z', e.target.value)}
+                                        step="0.1"
+                                    />
+                                </div>
+                                <div className="control-item">
+                                    <label>Dip Jitter (mm)</label>
+                                    <input
+                                        type="number"
+                                        value={config.dip_jitter}
+                                        onChange={(e) => updateConfig('dip_jitter', e.target.value)}
+                                        step="0.1"
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div className="control-group">
+                                <h3>📏 Z Heights</h3>
+                                <div className="control-item">
+                                    <label>Paint Height (mm)</label>
+                                    <input
+                                        type="number"
+                                        value={config.z_paint}
+                                        onChange={(e) => updateConfig('z_paint', e.target.value)}
+                                        step="0.1"
+                                    />
+                                </div>
+                                <div className="control-item">
+                                    <label>Low Height (mm)</label>
+                                    <input
+                                        type="number"
+                                        value={config.z_low}
+                                        onChange={(e) => updateConfig('z_low', e.target.value)}
+                                        step="0.1"
+                                    />
+                                </div>
+                                <div className="control-item">
+                                    <label>High Height (mm)</label>
+                                    <input
+                                        type="number"
+                                        value={config.z_high}
+                                        onChange={(e) => updateConfig('z_high', e.target.value)}
+                                        step="0.1"
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div className="control-group">
+                                <h3>⚡ Speed Settings</h3>
+                                <div className="control-item">
+                                    <label>Travel Feed (mm/min)</label>
+                                    <input
+                                        type="number"
+                                        value={config.feed}
+                                        onChange={(e) => updateConfig('feed', e.target.value)}
+                                        step="10"
+                                    />
+                                </div>
+                                <div className="control-item">
+                                    <label>Paint Feed (mm/min)</label>
+                                    <input
+                                        type="number"
+                                        value={config.feed_paint}
+                                        onChange={(e) => updateConfig('feed_paint', e.target.value)}
+                                        step="10"
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div className="control-group">
+                                <h3>🔧 Backlash Compensation</h3>
+                                <div className="control-item">
+                                    <label>X Backlash (mm)</label>
+                                    <input
+                                        type="number"
+                                        value={config.backlash_x}
+                                        onChange={(e) => updateConfig('backlash_x', e.target.value)}
+                                        step="0.1"
+                                    />
+                                </div>
+                                <div className="control-item">
+                                    <label>Y Backlash (mm)</label>
+                                    <input
+                                        type="number"
+                                        value={config.backlash_y}
+                                        onChange={(e) => updateConfig('backlash_y', e.target.value)}
+                                        step="0.1"
+                                    />
+                                </div>
+                                <div className="control-item">
+                                    <label>Threshold (mm)</label>
+                                    <input
+                                        type="number"
+                                        value={config.backlash_threshold}
+                                        onChange={(e) => updateConfig('backlash_threshold', e.target.value)}
+                                        step="0.01"
+                                    />
+                                </div>
+                                <div className="control-item">
+                                    <label>Backlash Feed (mm/min)</label>
+                                    <input
+                                        type="number"
+                                        value={config.backlash_feed}
+                                        onChange={(e) => updateConfig('backlash_feed', e.target.value)}
+                                        step="10"
+                                    />
+                                </div>
+                            </div>
+                            
+                            <button
+                                className="generate-btn"
+                                onClick={generateGcode}
+                                disabled={!imageData}
+                            >
+                                ⚡ Generate G-code
+                            </button>
+                            
+                            {gcode && (
+                                <button className="download-btn" onClick={downloadGcode}>
+                                    💾 Download G-code
+                                </button>
+                            )}
+                        </div>
+                        
+                        {/* Preview Panel */}
+                        <div className="panel">
+                            <div className="panel-title">👁️ Preview</div>
+                            
+                            <div className="tabs">
+                                <button
+                                    className={`tab ${activeTab === 'image' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('image')}
+                                >
+                                    🖼️ Image
+                                </button>
+                                <button
+                                    className={`tab ${activeTab === 'visual' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('visual')}
+                                >
+                                    🎨 Visual
+                                </button>
+                                <button
+                                    className={`tab ${activeTab === 'gcode' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('gcode')}
+                                >
+                                    📄 G-code
+                                </button>
+                            </div>
+                            
+                            {activeTab === 'image' && (
+                                <canvas
+                                    ref={imageCanvasRef}
+                                    className="preview-canvas"
+                                    style={{ maxHeight: '400px' }}
+                                />
+                            )}
+                            
+                            {activeTab === 'visual' && (
+                                <>
+                                    <canvas
+                                        ref={gcodeCanvasRef}
+                                        className="preview-canvas"
+                                        style={{ height: '400px', display: gcode ? 'block' : 'none' }}
+                                    />
+                                    {!gcode && (
+                                        <div style={{
+                                            height: '400px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: '#999',
+                                            fontSize: '1.1em'
+                                        }}>
+                                            🎨 Visual path preview will appear here after generation
+                                        </div>
+                                    )}
+                                    {gcode && (
+                                        <div className="visual-legend">
+                                            <div className="legend-item">
+                                                <div className="legend-color paint"></div>
+                                                <span>Paint Moves</span>
+                                            </div>
+                                            <div className="legend-item">
+                                                <div className="legend-color travel"></div>
+                                                <span>Travel Moves</span>
+                                            </div>
+                                            <div className="legend-item">
+                                                <div className="legend-color dip"></div>
+                                                <span>Dip Position</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                            
+                            {activeTab === 'gcode' && (
+                                <div className="gcode-preview">
+                                    {gcode || '// G-code will appear here after generation'}
+                                </div>
+                            )}
+                            
+                            {stats.lines > 0 && (
+                                <div className="stats-grid">
+                                    <div className="stat-box">
+                                        <div className="stat-value">{stats.lines}</div>
+                                        <div className="stat-label">Lines</div>
+                                    </div>
+                                    <div className="stat-box">
+                                        <div className="stat-value">{stats.paths}</div>
+                                        <div className="stat-label">Paths</div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        
+                        {/* Terminal Panel */}
+                        <div className="panel">
+                            <div className="panel-title">💻 Terminal</div>
+                            <div className="terminal">
+                                {terminal.length === 0 ? (
+                                    <div className="terminal-line info">
+                                        Ready. Upload an image to begin...
+                                    </div>
+                                ) : (
+                                    terminal.map((log, idx) => (
+                                        <div key={idx} className={`terminal-line ${log.type}`}>
+                                            [{log.time}] {log.message}
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
         
-        // Download
-        document.getElementById('downloadBtn').addEventListener('click', function() {
-            if (!generatedGCode) return;
-            const blob = new Blob([generatedGCode], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'bacterial_painter.gcode';
-            a.click();
-            URL.revokeObjectURL(url);
-        });
+        ReactDOM.render(<App />, document.getElementById('root'));
     </script>
 </body>
 </html>
