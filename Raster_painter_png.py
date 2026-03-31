@@ -76,7 +76,7 @@ class UltraPainter:
         img = Image.open(img_path).convert('L').transpose(Image.FLIP_TOP_BOTTOM)
         img = img.point(lambda p: 0 if p < 140 else 255)
         
-        res = 4.8
+        res = 1.0
         tw, th = int(c['target_width']*res), int(c['target_width']*(img.height/img.width)*res)
         img = img.resize((tw, th), Image.Resampling.NEAREST)
         arr = np.array(img) < 140
@@ -173,28 +173,28 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     config = {
-        'target_width': 1030.0,
-        'brush_w':      1.3, 
-        'overlap':      0.15,
+        'target_width': 125,
+        'brush_w':      1.0, 
+        'overlap':      0.0,
         'infill_type':  'lines',
-        'infill_angle': 90.0,    # Poljuben kot: 0, 45, 90, -45 itd.
-        'min_dist':     240.0,
-        'max_dist':     280.0,
+        'infill_angle': 0.0,    # Poljuben kot: 0, 45, 90, -45 itd.
+        'min_dist':     90.0,
+        'max_dist':     120.0,
         'z_paint':      0.0,
-        'z_low':        2.2,
-        'z_high':       31.0,
-        'z_wipe_exit':  16.0,
-        'x_off':        252.0,
-        'y_off':        231.0,
-        'dip_x':        66.0,
-        'dip_y':        861.0,
-        'dip_z':        0.3,
-        'dip_jitter':   20.0,
+        'z_low':        1.0,
+        'z_high':       9.0,
+        'z_wipe_exit':  4.4,
+        'x_off':        34.0,
+        'y_off':        75.0,
+        'dip_x':        148.0,
+        'dip_y':        0.0,
+        'dip_z':        0.0,
+        'dip_jitter':   10.0,
         'dip_spiral_loops': 1.0,
-        'dip_spiral_r': 50.0,
-        'wipe_r':       70.0,
+        'dip_spiral_r': 15.0,
+        'wipe_r':       29.0,
         'feed':         12000,
-        'feed_paint':   400,
+        'feed_paint':   200,
         'accel_travel': 12000, 
         'accel_paint':  200,  
     }
