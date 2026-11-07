@@ -21,16 +21,42 @@ This Python script converts raster images into optimized G-code instructions for
 * Path Optimization: Analyzes segment proximity to minimize unnecessary travel moves and optimizes the painting order of different image regions.
 
 * Image-to-Gcode Conversion: Built-in processing that converts standard grayscale images into optimized painting paths with adjustable scale and resolution.
+
+## Files
+
+| File | What it is |
+| :--- | :--- |
+| `muti_random_path_small_dipZ.py` | **Newest version.** Several paint dishes (always the nearest one), dip depth that gets deeper as the paint runs low, random cluster path order (see below) |
+| `Raster_painter_png.py` | Lines / concentric infill with nearest-neighbour path optimization |
+| `lines500_con_line_RomaSmall22.py` | The same painter with settings for a 680 mm concentric painting |
+| `raster_painter.py` | The first version (diagonal lead-in into the dish) |
+| `Infill_painter.html` | OpenBrushograph: the same painter in the browser, no install needed |
+
 ## Usage
 
-Run the script from the terminal by specifying the input image and the desired output path:
+Run the script from the terminal by specifying the input image and the desired output path. The settings are in
+the `config` block at the bottom of each script.
 
-bash
-python painter.py <input_image> <output_gcode_file>
+```
+python muti_random_path_small_dipZ.py <input_image> <output_gcode_file>
+```
 
 ## Example:
-bash
-python painter.py logo.png output.gcode
+
+```
+python muti_random_path_small_dipZ.py logo.png output.gcode
+```
+
+## What is new in muti_random_path_small_dipZ.py
+
+* **Several paint dishes:** `petri_positions` is a list of dish centres. Each dip goes to the dish **nearest** to the
+  brush, so the brush no longer travels back to one fixed spot. (`dip_x` / `dip_y` are still used when the list is empty.)
+* **Dip gets deeper over the job:** instead of one `dip_z`, the dip goes from `dip_z_start` (dish full) to `dip_z_end`
+  (dish emptier), in a straight line over the total painted length.
+* **Random cluster order:** the strokes are grouped into blob-shaped areas (k-means). The areas are painted in random
+  order, but inside an area the strokes still follow each other (nearest neighbour), so the brush does not zig-zag.
+  `cluster_size` = about how many strokes per area (lower = more jumps around the picture).
+* **Strokes in both directions:** each stroke starts from whichever end is nearer.
 
 ## General Settings Variable Description 
 
